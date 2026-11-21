@@ -1,0 +1,26 @@
+# ---- Game data: never commit anything from the disc ----
+*.iso
+*.xiso
+*.xbe
+game/
+# Recompiled / lifted code is a translation of the game's code; regenerate it from your own disc.
+generated/
+
+# ---- Build output ----
+out/
+build/
+dist/
+deps/build/
+
+# ---- Local play folder and user data (saves, settings, logs) ----
+CrimsonSkiesPC/
+*.toml.bak
+crashes/
+logs/
+cache/
+
+# ---- Scratch ----
+work/
+*.png
+*.dmp
+__pycache__/
