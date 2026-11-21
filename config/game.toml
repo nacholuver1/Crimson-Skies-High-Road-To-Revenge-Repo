@@ -91,6 +91,7 @@ D3DDevice_GetDepthStencilSurface2                    = 0x203260
 D3DDevice_GetRenderTarget2                           = 0x203240
 D3DDevice_GetTile                                    = 0
 D3DDevice_GetVertexShaderFunction                    = 0
+D3DDevice_GetVisibilityTestResult                    = 0x202920  # by hand (xbsdb): not in the 5659 signatures; the game spins on it (the AA gun freeze)
 D3DDevice_InsertFence                                = 0
 D3DDevice_IsFencePending                             = 0
 D3DDevice_LightEnable                                = 0

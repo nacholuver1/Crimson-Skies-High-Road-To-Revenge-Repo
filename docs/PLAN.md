@@ -91,8 +91,8 @@ demo, you look at close-up artifacts, and one lldb session when profiling. Use
 Done: boots through the intro movies to the main menu, then a full mission is played.
 
 **Status 2026-11-21:** boots, intro, title, menus (text fixed) and a mission load reach gameplay. The
-bugs and fixes are in RESEARCH.md, "First boot to gameplay". Next: a full mission, saves (watch for xemu #2772),
-audio rates (xemu #147), frame rate (30 fps gate, 60 fps option).
+bugs and fixes are in RESEARCH.md, "First boot to gameplay". Saves work. The AA gun freeze and the water shadow are fixed. Open: a loading-screen freeze
+(RESEARCH.md, "Open: freeze on a loading screen"), audio rates (xemu #147), frame rate (30 fps gate, 60 fps option).
 
 ## 4. Release (SOP §5)
 

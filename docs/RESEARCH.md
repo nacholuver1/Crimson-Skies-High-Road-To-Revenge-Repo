@@ -219,6 +219,8 @@ Each fix is in the SDK fork (`nacholuver1/XboxXBERecomp`, branch `crimson-skies`
 | Polling `IsBusy` could hang | the batch in progress wasn't submitted | **upstream PR #5** (cherry-picked) | TGP482/XboxXBERecomp#5 (Conker port) |
 | Crash loading a mission | `IDirectSoundBuffer_SetRolloffFactor` had no host version | dsound: accepted, ignored like the stream version | |
 | Trap after the mission relaunch, "indirect call to 00185110" | a factory function right after a jump table, only reached from the table at 0x2CE088 | config `[functions] 0x185110` | |
+| Freeze leaving an AA gun | the game spins on `D3DDevice_GetVisibilityTestResult` (0x202920) for a report that is never written: no present in between | **upstream PR #25** (cherry-picked), 5659 `CDevice_Reports = 0x7D0`, config names the function | TGP482/XboxXBERecomp#25 (Ratatouille port); found with lldb on the frozen game |
+| Black frame around the plane shadow over water | shadow map (LIN_D16, border address, white border) sampled with the border not reversed for the renderer's reversed depth | gpu: reverse a shadow sampler's border colour | F3 capture; nothing found online |
 
 Also added: `XBE_LOG=1` (full logging in a release build), file and folder logging, and a "texture changed between draws" report.
 
@@ -229,3 +231,25 @@ The game restarts its own executable (`HalReturnToFirmware`, `default.xbe`) to l
 - [xemu #2772](https://github.com/xemu-project/xemu/issues/2772): freezes on a loading screen after aircraft selection (leaving the base), and corrupts or deletes the save. Reported on xemu and Cxbx-Reloaded builds since about June 2024.
 - [xemu #147](https://github.com/xemu-project/xemu/issues/147): `Gun_2D` and other `_2D` sounds play muffled, at about 11 kHz instead of 22 kHz, and `_3D` sounds are too loud at distance.
 - xemu #2902 / #1098: frame rate drops near the volcano in mission 2 (on xemu).
+
+## Open: freeze on a loading screen (2026-11-21)
+
+Seen once, in mission 2 after the AA gun fix. One core busy. lldb on the frozen game showed:
+
+- **Main thread:** shutting down a sound object (`0x18F400`): it sets the object's state to 3 under its
+  critical section, then spins `GetExitCodeThread` (XAPI 0x1C478A) with `Sleep(0)` until the object's thread
+  exits.
+- **The sound worker threads** (`0x18F8C0` → `WaitForMultipleObjectsEx`, 25 ms timeout) were all idle,
+  except one (log thread #28) that was inside `0x3ABB0`, the streaming read. That function enters one of an
+  array of critical sections at `0x3133F8` (0x1C each), seeks and reads. The thread was blocked in a kernel
+  wait called directly from it, so most likely `RtlEnterCriticalSection` on a section someone else holds.
+- **Likely a lock-order deadlock in the game:** the main thread may hold that file section, from the loading
+  code further up its stack, while it waits for the sound thread to exit. Timing decides whether it happens,
+  which fits [xemu #2772](https://github.com/xemu-project/xemu/issues/2772) ("freezes on random loading
+  screens").
+- **Next time it freezes:** leave the game frozen and run `tools\guest_locks.ps1` (no debugger), which prints
+  each section's owner thread. That shows who holds what before deciding on a fix.
+
+The SDK's `GetExitCodeThread` path is fine: `MarkExited` sets the thread object's signal state at `+4`,
+which XAPI reads. It doesn't write the exit code at `+0x120` (XAPI reads it as the exit code). Harmless here,
+but worth fixing if a title checks codes.
