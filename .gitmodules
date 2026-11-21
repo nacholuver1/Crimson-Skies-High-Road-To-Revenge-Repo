@@ -1,0 +1,4 @@
+[submodule "sdk"]
+	path = sdk
+	url = https://github.com/nacholuver1/XboxXBERecomp.git
+	branch = crimson-skies

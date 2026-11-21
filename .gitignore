@@ -2,7 +2,8 @@
 *.iso
 *.xiso
 *.xbe
-game/
+/game/
+assets/
 # Recompiled / lifted code is a translation of the game's code; regenerate it from your own disc.
 generated/
 
@@ -24,3 +25,17 @@ work/
 *.png
 *.dmp
 __pycache__/
+
+# ---- From the XboxXBERecomp game template ----
+*.zip
+*.pdb
+*.exe
+*.obj
+*.o
+settings.toml
+/hdd/
+/CrashDumps/
+.vs/
+.vscode/
+.idea/
+.local

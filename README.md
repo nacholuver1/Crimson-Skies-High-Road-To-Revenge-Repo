@@ -4,7 +4,10 @@ An unofficial native PC port of **Crimson Skies: High Road to Revenge** (origina
 made by *static recompilation*: the game's code is translated ahead of time into a normal
 x64 program, with a reimplemented Xbox kernel, GPU, audio and input layer underneath.
 
-**Status: setting up.** Nothing builds or runs yet.
+**Status: early, boots to the title screen.** The retail `default.xbe` builds and runs through the intro
+movies to "PRESS START" with sound. Menus past that and gameplay are untested. Built on
+[XboxXBERecomp](https://github.com/TGP482/XboxXBERecomp) through a fork with the fixes this game needed
+([nacholuver1/XboxXBERecomp](https://github.com/nacholuver1/XboxXBERecomp), branch `crimson-skies`).
 
 **This repository contains no game data.** No disc image, no game files, and none of the
 code generated from the game's executable. To play, you will need your own copy of the game.
@@ -34,9 +37,10 @@ machine, and ReXGlue does not apply:
 | Kernel | xboxkrnl (360) | xboxkrnl (original, ~366 exports) |
 | Game code links | XDK libraries | XDK libraries statically linked (D3D8, DSound, XAPI) |
 
-The toolchain is still to be chosen (x86-32 → x64 lifting with kernel HLE, plus D3D8/NV2A
-translation to D3D12/Vulkan). Prior art to study: [Cxbx-Reloaded](https://github.com/Cxbx-Reloaded/Cxbx-Reloaded)
-(XDK library HLE and kernel) and [xemu](https://github.com/xemu-project/xemu) (NV2A).
+The toolchain is [XboxXBERecomp](https://github.com/TGP482/XboxXBERecomp) (x86 to C++, Xbox kernel and XDK
+libraries on the host, Direct3D 12 and XAudio2), with the XDK 5659 signatures of
+[TGP482/XboxXBERecomp#27](https://github.com/TGP482/XboxXBERecomp/pull/27). See [docs/PLAN.md](docs/PLAN.md)
+and [docs/RESEARCH.md](docs/RESEARCH.md) for the plan, the fork's fixes and what other projects contributed.
 
 ## Tools
 
