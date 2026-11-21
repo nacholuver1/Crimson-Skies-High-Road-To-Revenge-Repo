@@ -205,3 +205,27 @@ is the **XNet socket set**. XbSymbolDatabase shows `socket` / `bind` / `connect`
 / `recv` are linked, so `send`, `recvfrom`, `closesocket`, `XNetStartup`, ... almost certainly
 are too. That only matters for System Link. Do it after single-player boots, by walking the
 XNet section around the five known addresses.
+
+## First boot to gameplay: bugs, fixes and sources (2026-11-21)
+
+Each fix is in the SDK fork (`nacholuver1/XboxXBERecomp`, branch `crimson-skies`) unless it says config.
+
+| Symptom | Cause | Fix | Sources |
+|---|---|---|---|
+| Trap 0.66 s in, "indirect call to 002181ED" | D3DX image loaders `longjmp` back to a `_setjmp3` (0x1F2F64) return address, which had no entry | recompiler: `[xbe] setjmp`; config `setjmp = 0x1F2F64` | SOP §2 (setjmp/longjmp); maxscipio's MechAssault notes (D3DX loaders) |
+| Dirty disc error | the game indexes the disc root into `Z:\dvdcontent.bin` with an **empty** directory mask, which the SDK matched against nothing | kernel: an empty mask lists everything | xemu #2902 mentions the same error ("unless you use a fresh hdd image") |
+| Null read at the title screen | `IDirectSoundBuffer_SetNotificationPositions` had no host version | dsound: implemented (events at play-cursor offsets and on stop) | PR #27 has the signature |
+| Menu text doubled / flickering | one surface CPU-written per text line between draws. The lock didn't wait for queued draws, and textures were checked once per frame | gpu: re-check after a lock; d3d: texture locks wait for the draws that read them (matched by memory too) | **xemu #2902 and its fix PR #2965** (abaire): same diagnosis |
+| Polling `IsBusy` could hang | the batch in progress wasn't submitted | **upstream PR #5** (cherry-picked) | TGP482/XboxXBERecomp#5 (Conker port) |
+| Crash loading a mission | `IDirectSoundBuffer_SetRolloffFactor` had no host version | dsound: accepted, ignored like the stream version | |
+| Trap after the mission relaunch, "indirect call to 00185110" | a factory function right after a jump table, only reached from the table at 0x2CE088 | config `[functions] 0x185110` | |
+
+Also added: `XBE_LOG=1` (full logging in a release build), file and folder logging, and a "texture changed between draws" report.
+
+The game restarts its own executable (`HalReturnToFirmware`, `default.xbe`) to load a mission or the attract demo. The SDK relaunches into a new process, which writes its own log.
+
+**Known issues from other emulators to test for:**
+
+- [xemu #2772](https://github.com/xemu-project/xemu/issues/2772): freezes on a loading screen after aircraft selection (leaving the base), and corrupts or deletes the save. Reported on xemu and Cxbx-Reloaded builds since about June 2024.
+- [xemu #147](https://github.com/xemu-project/xemu/issues/147): `Gun_2D` and other `_2D` sounds play muffled, at about 11 kHz instead of 22 kHz, and `_3D` sounds are too loud at distance.
+- xemu #2902 / #1098: frame rate drops near the volcano in mission 2 (on xemu).

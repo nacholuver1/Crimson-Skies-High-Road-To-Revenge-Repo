@@ -4,8 +4,8 @@ An unofficial native PC port of **Crimson Skies: High Road to Revenge** (origina
 made by *static recompilation*: the game's code is translated ahead of time into a normal
 x64 program, with a reimplemented Xbox kernel, GPU, audio and input layer underneath.
 
-**Status: early, boots to the title screen.** The retail `default.xbe` builds and runs through the intro
-movies to "PRESS START" with sound. Menus past that and gameplay are untested. Built on
+**Status: early, reaches gameplay.** The retail `default.xbe` builds and runs through the intro, the menus
+and a mission load into flying, with sound. Full missions, saves and settings are still being tested. Built on
 [XboxXBERecomp](https://github.com/TGP482/XboxXBERecomp) through a fork with the fixes this game needed
 ([nacholuver1/XboxXBERecomp](https://github.com/nacholuver1/XboxXBERecomp), branch `crimson-skies`).
 
