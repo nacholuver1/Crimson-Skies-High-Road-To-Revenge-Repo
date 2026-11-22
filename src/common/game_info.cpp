@@ -2,6 +2,7 @@
 #include "feedback.h"
 #include "fps_overlay.h"
 #include "frame_rate.h"
+#include "kbm.h"
 #include "launcher.h"
 #include "widescreen.h"
 
@@ -12,6 +13,26 @@ namespace {
 void Startup() {
     if (launcher::Wanted() && !launcher::Run()) std::exit(0);
     frame_rate::Init();
+}
+
+// window messages: the FPS overlay's key first, then the mouse
+bool Message(void* hwnd, uint32_t msg, uintptr_t wp, intptr_t lp, intptr_t* result) {
+    return fps_overlay::Message(hwnd, msg, wp, lp, result) || kbm::Message(hwnd, msg, wp, lp, result);
+}
+
+// each polled pad: keyboard and mouse added to player 1, then the trigger rumble reads what is held
+void Pad(int port, input::Pad& pad) {
+    kbm::Pad(port, pad);
+    feedback::Pad(port, pad);
+}
+
+// each rumble the game sets: none while the keyboard and mouse are in use, else the stronger crashes and triggers
+void Rumble(int port, uint16_t& left, uint16_t& right) {
+    if (kbm::MuteRumble()) {
+        left = right = 0;
+        return;
+    }
+    feedback::Rumble(port, left, right);
 }
 }  // namespace
 
@@ -31,14 +52,17 @@ const app::GameInfo app::kGame = {
                 {"launcher", &launcher::g_show, nullptr},     // the pre-game launcher
                 {"impulse_triggers", &feedback::g_triggers, nullptr},  // trigger motors follow the game's rumble
                 {"crash_rumble", &feedback::g_crash, nullptr},         // collisions held and faded
-                {"fov", nullptr, &widescreen::g_fov}},                 // field of view, percent of the original
-    .load = nullptr,                      // reads more from the settings file's toml::table
-    .save = nullptr,                      // writes more into it
+                {"fov", nullptr, &widescreen::g_fov},
+                {"input_device", nullptr, &kbm::g_device},        // 0 auto, 1 controller, 2 keyboard and mouse
+                {"mouse_sensitivity", nullptr, &kbm::g_mouse},    // mouse steering, percent; 0 turns it off
+                {"mouse_pitch", &kbm::g_mouse_pitch, nullptr}},   // the mouse pitches as well as turns                 // field of view, percent of the original
+    .load = kbm::Load,                      // reads more from the settings file's toml::table
+    .save = kbm::Save,                      // writes more into it
     .init = Startup,                      // after the settings load, before the window and boot
     .loaded = nullptr,                    // image in memory, before its entry point runs
     .window = nullptr,                    // the game window is up
-    .message = fps_overlay::Message,      // window messages first; true takes one
+    .message = Message,      // window messages first; true takes one
     .ui = fps_overlay::Draw,              // ImGui drawing each frame
-    .pad = feedback::Pad,                 // changes a polled pad
-    .rumble = feedback::Rumble,           // changes a rumble before it is set
+    .pad = Pad,                 // changes a polled pad
+    .rumble = Rumble,           // changes a rumble before it is set
 };

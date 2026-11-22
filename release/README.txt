@@ -44,6 +44,10 @@ Settings (saved to settings.toml next to the program; the launcher writes it)
                               feel sick (100% is the original)
   Field of view               80% to 130% of the original view; wider can help with motion sickness.
                               On a widescreen monitor the 3D view is true 16:9 (the HUD stays stretched).
+  Input device                Auto: keyboard, mouse and controller all work, and the controller only
+                              vibrates when you used it last. Or Controller only, or Keyboard and mouse.
+  Key bindings                every keyboard and mouse control: pick one, press the new key
+  Mouse steering, pitch       steer with the mouse instead of the keys (off by default)
   Trigger rumble              Xbox One / Series controllers: the right trigger vibrates with the main guns (RT),
                               the left with the secondary weapon (LT), both lightly with the afterburner (Y) and
                               with crashes
@@ -66,6 +70,15 @@ Everything stays in this folder
   CrashDumps\    crash dumps, if it ever crashes
   Delete the folder and it's all gone. When updating, copy the new files over the old ones; keep assets\, hdd\
   and settings.toml.
+
+Keyboard and mouse (change any of these in the launcher's Key bindings page)
+  W / S          nose down / nose up          A / D          turn left / right
+  Q / E          roll left / right            R / F          speed up / slow down
+  Left mouse     main guns                    Right mouse    secondary weapon
+  Shift          boost                        Space          brake
+  V, middle mouse  special moves              1 / 2 / Z / X / C  A / X / black / white / left stick click
+  Arrows         D-pad                        Esc            pause (START)
+  Enter / Backspace  menu accept / back       Tab            BACK
 
 Known issues
   - "Demos" on the main menu starts Microsoft's demo launcher (trailers and a Voodoo Vince demo), which is not

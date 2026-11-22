@@ -48,6 +48,9 @@ texture filtering, video upscaling, vsync, frame rate, FPS counter, trigger and 
 | `anisotropic_filtering` | 0 (as the game asks), 2, 4, 8, 16 |
 | `display_mode`, `width`, `height`, `vsync`, `audio_output` | the SDK's display and audio settings |
 | `game_path` | the game: a disc image (`.iso`) or the extracted game's folder; empty uses `assets` |
+| `input_device` | 0 auto (keyboard, mouse and controller; the controller only vibrates when used last), 1 controller only, 2 keyboard and mouse (no controller rumble) |
+| `[controls]` | the keyboard and mouse bindings, set on the launcher's **Key bindings** page |
+| `mouse_sensitivity`, `mouse_pitch` | mouse steering (off by default: the keys steer, the mouse buttons fire) |
 | `impulse_triggers` | Xbox One / Series trigger motors follow the guns, afterburner and crashes (on by default) |
 | `crash_rumble` | crashes held and faded into a strong jolt; false keeps the game's very short one (on by default) |
 | `launcher` | false starts the game directly |

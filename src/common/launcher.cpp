@@ -8,6 +8,7 @@
 // keyboard, mouse or controller. Drawn with Dear ImGui on Direct3D 11 in a window of its own, gone before the game's
 // opens. The device and window setup follow Dear ImGui's example_win32_directx11 (MIT License).
 #include "launcher.h"
+#include "kbm.h"
 #include "widescreen.h"
 
 #ifndef NOMINMAX
@@ -64,9 +65,11 @@ const Choice kAniso[] = {{0, "Game default"}, {2, "2x"}, {4, "4x"}, {8, "8x"}, {
 const Choice kFps[] = {{30, "30 (original)"}, {60, "60"}, {120, "120"}, {144, "144"}, {165, "165"}, {240, "240"}};
 const Choice kFovs[] = {{80, "80%"}, {90, "90%"}, {100, "100% (original)"}, {110, "110%"}, {120, "120%"}, {130, "130%"}};
 const Choice kSways[] = {{0, "Off"}, {25, "25%"}, {50, "50%"}, {75, "75%"}, {100, "100% (original)"}};
+const Choice kDevices[] = {{0, "Auto"}, {1, "Controller"}, {2, "Keyboard and mouse"}};
+const Choice kMice[] = {{0, "Off"}, {50, "50%"}, {75, "75%"}, {100, "100%"}, {150, "150%"}, {200, "200%"}, {300, "300%"}};
 const Choice kAudio[] = {{0, "Automatic"}, {1, "Stereo"}, {2, "5.1 surround"}, {3, "Mono"}};
 
-enum Row { kStart, kGame, kDisplayMode, kResolution, kRenderRes, kAntiAlias, kFiltering, kVideoUpscale, kVsync, kFrameRate, kFov, kSway, kFpsCounter, kTriggers, kCrash,
+enum Row { kStart, kGame, kDisplayMode, kResolution, kRenderRes, kAntiAlias, kFiltering, kVideoUpscale, kVsync, kFrameRate, kFov, kSway, kFpsCounter, kDevice, kBindings, kMouse, kMousePitch, kTriggers, kCrash,
            kAudioOut, kLauncherAtStart, kQuit, kRows };
 
 template <size_t N>
@@ -161,6 +164,10 @@ const char* Label(int row) {
         case kFov: return "Field of view";
         case kSway: return "Camera sway";
         case kFpsCounter: return "FPS counter";
+        case kDevice: return "Input device";
+        case kBindings: return "Key bindings";
+        case kMouse: return "Mouse steering";
+        case kMousePitch: return "Mouse pitch";
         case kTriggers: return "Trigger rumble";
         case kCrash: return "Crash rumble";
         case kAudioOut: return "Audio output";
@@ -192,6 +199,10 @@ const char* Note(int row) {
         case kSway: return "The camera's turbulence sway. Lower it if the motion makes you feel sick.";
         case kFov: return "How much of the world you see. Wider can help with motion sickness.";
         case kFpsCounter: return "Frame rate in the corner. F2 shows or hides it in game.";
+        case kDevice: return "Auto: both work, and the controller only vibrates when you used it last.";
+        case kBindings: return "Enter or a click: choose the keys and mouse buttons for every control.";
+        case kMouse: return "How far moving the mouse turns the plane. Off: keys and mouse buttons only.";
+        case kMousePitch: return "On: moving the mouse up and down pitches the nose too.";
         case kTriggers: return "Xbox One / Series controllers: the triggers vibrate with the guns, afterburner and crashes.";
         case kCrash: return "Makes crashes a strong jolt; the game's own crash rumble is very short.";
         case kAudioOut: return "Automatic follows your Windows speaker setup.";
@@ -225,6 +236,9 @@ std::string Value(int row) {
         case kSway: return kSways[IndexOf(kSways, std::min(frame_rate::g_sway, 100u))].label;
         case kFov: return kFovs[IndexOf(kFovs, widescreen::Fov())].label;
         case kFpsCounter: return fps_overlay::g_show ? "On" : "Off";
+        case kDevice: return kDevices[IndexOf(kDevices, kbm::g_device)].label;
+        case kMouse: return kMice[IndexOf(kMice, kbm::g_mouse)].label;
+        case kMousePitch: return kbm::g_mouse_pitch ? "On" : "Off";
         case kTriggers: return feedback::g_triggers ? "On" : "Off";
         case kCrash: return feedback::g_crash ? "Stronger" : "Original";
         case kAudioOut: return kAudio[IndexOf(kAudio, s.audio_output)].label;
@@ -252,6 +266,9 @@ void Change(int row, int d) {
         case kSway: frame_rate::g_sway = Step(kSways, std::min(frame_rate::g_sway, 100u), d); break;
         case kFov: widescreen::g_fov = Step(kFovs, widescreen::Fov(), d); break;
         case kFpsCounter: fps_overlay::g_show = !fps_overlay::g_show; break;
+        case kDevice: kbm::g_device = Step(kDevices, kbm::g_device, d); break;
+        case kMouse: kbm::g_mouse = Step(kMice, kbm::g_mouse, d); break;
+        case kMousePitch: kbm::g_mouse_pitch = !kbm::g_mouse_pitch; break;
         case kTriggers: feedback::g_triggers = !feedback::g_triggers; break;
         case kCrash: feedback::g_crash = !feedback::g_crash; break;
         case kAudioOut: s.audio_output = Step(kAudio, s.audio_output, d); break;
@@ -261,15 +278,159 @@ void Change(int row, int d) {
     app::Save();
 }
 
-bool HasOption(int row) { return row != kStart && row != kGame && row != kQuit; }
+bool HasOption(int row) { return row != kStart && row != kGame && row != kQuit && row != kBindings; }
 
 enum class Result { Pending, Start, Quit };
+
+// the key bindings page: every keyboard and mouse control, chosen by pressing the key
+bool g_bindings = false;      // the page is open
+int g_bsel = 0;               // its row: the actions, then Reset, then Back
+int g_capture = -1;           // the action waiting for a key
+bool g_wait_release = false;  // a press that just acted must be let go before the next one counts
+bool g_prev_down[256] = {};
+
+void OpenBindings() {
+    g_bindings = true;
+    g_bsel = 0;
+    g_capture = -1;
+    g_wait_release = true;
+}
+
+// a key or mouse button pressed since the last frame, or 0
+int NewKey() {
+    int found = 0;
+    for (int vk = 1; vk < 255; vk++) {
+        if (vk == VK_LSHIFT || vk == VK_RSHIFT || vk == VK_LCONTROL || vk == VK_RCONTROL || vk == VK_LMENU ||
+            vk == VK_RMENU)
+            continue;  // the generic Shift / Ctrl / Alt are bound instead
+        bool down = (GetAsyncKeyState(vk) & 0x8000) != 0;
+        if (down && !g_prev_down[vk] && !found) found = vk;
+        g_prev_down[vk] = down;
+    }
+    return found;
+}
+
+bool AnyKeyDown() {
+    for (int vk = 1; vk < 255; vk++)
+        if (GetAsyncKeyState(vk) & 0x8000) return true;
+    return false;
+}
+
+void DrawBindings(float scale) {
+    ImGuiIO& io = ImGui::GetIO();
+    ImDrawList* dl = ImGui::GetBackgroundDrawList();
+    auto& acts = kbm::Actions();
+    const int n = int(acts.size()), rows = n + 2, kReset = n, kBack = n + 1;
+    const int per_col = (n + 1) / 2;
+
+    bool idle = false;
+    if (g_wait_release) {
+        if (!AnyKeyDown()) {
+            g_wait_release = false;
+            NewKey();  // take in the current state
+        }
+    } else if (g_capture >= 0) {
+        if (int vk = NewKey()) {
+            if (vk == VK_DELETE) acts[g_capture].keys.clear();
+            else acts[g_capture].keys = {vk};
+            g_capture = -1;
+            g_wait_release = true;
+            app::Save();
+        }
+    } else {
+        idle = true;
+        auto pressed = [](ImGuiKey a, ImGuiKey b) { return ImGui::IsKeyPressed(a, false) || ImGui::IsKeyPressed(b, false); };
+        if (pressed(ImGuiKey_UpArrow, ImGuiKey_GamepadDpadUp)) g_bsel = (g_bsel + rows - 1) % rows;
+        if (pressed(ImGuiKey_DownArrow, ImGuiKey_GamepadDpadDown)) g_bsel = (g_bsel + 1) % rows;
+        if (pressed(ImGuiKey_RightArrow, ImGuiKey_GamepadDpadRight)) {
+            if (g_bsel < per_col && g_bsel + per_col < n) g_bsel += per_col;
+            else if (g_bsel == kReset) g_bsel = kBack;
+        }
+        if (pressed(ImGuiKey_LeftArrow, ImGuiKey_GamepadDpadLeft)) {
+            if (g_bsel >= per_col && g_bsel < n) g_bsel -= per_col;
+            else if (g_bsel == kBack) g_bsel = kReset;
+        }
+        if (pressed(ImGuiKey_Escape, ImGuiKey_GamepadFaceRight)) {
+            g_bindings = false;
+            g_wait_release = true;
+            return;
+        }
+        if (pressed(ImGuiKey_Enter, ImGuiKey_GamepadFaceDown)) {
+            g_wait_release = true;
+            if (g_bsel < n) {
+                g_capture = g_bsel;
+            } else if (g_bsel == kReset) {
+                kbm::ResetBindings();
+                app::Save();
+            } else {
+                g_bindings = false;
+                return;
+            }
+        }
+    }
+
+    float fs = ImGui::GetFontSize();
+    float pad = fs * 1.2f, title_h = fs * 3.6f, note_h = fs * 3.0f;
+    float row_h = std::min(fs * 1.7f, (io.DisplaySize.y - fs * 2 - title_h - note_h - pad) / (per_col + 1.5f));
+    float col_w = std::min(ImGui::CalcTextSize("Special moves (right stick click)   V, Middle mouse").x + fs,
+                           (io.DisplaySize.x - fs * 2 - pad * 3) / 2);
+    float pw = col_w * 2 + pad * 3;
+    float ph = title_h + row_h * (per_col + 1.5f) + note_h + pad;
+    ImVec2 p0((io.DisplaySize.x - pw) / 2, (io.DisplaySize.y - ph) / 2), p1(p0.x + pw, p0.y + ph);
+    dl->AddRectFilled(p0, p1, kPanel, fs * 0.4f);
+    dl->AddRect(p0, p1, kAccent, fs * 0.4f, 0, std::max(1.0f, scale));
+    dl->AddText(ImGui::GetFont(), fs * 1.4f, ImVec2(p0.x + pad, p0.y + pad * 0.6f), kAccent, "KEY BINDINGS");
+
+    for (int i = 0; i < rows; i++) {
+        int col = i < n ? i / per_col : (i == kReset ? 0 : 1);
+        float r = i < n ? float(i % per_col) : per_col + 0.4f;
+        float x = p0.x + pad + col * (col_w + pad);
+        ImVec2 a(x - pad * 0.3f, p0.y + title_h + r * row_h), b(x + col_w, a.y + row_h);
+        bool hover = idle && ImGui::IsMouseHoveringRect(a, b);
+        if (hover && (io.MouseDelta.x != 0 || io.MouseDelta.y != 0)) g_bsel = i;
+        if (i == g_bsel) dl->AddRectFilled(a, b, kHighlight, fs * 0.25f);
+        float ty = a.y + (row_h - fs) / 2, tx = a.x + pad * 0.3f;
+        ImU32 col_c = i == g_bsel ? kWhite : kGrey;
+        if (i < n) {
+            dl->AddText(ImVec2(tx, ty), col_c, acts[i].label);
+            std::string v = g_capture == i ? std::string("press a key...") : kbm::KeysText(acts[i].keys);
+            float vw = ImGui::CalcTextSize(v.c_str()).x;
+            dl->AddText(ImVec2(b.x - pad * 0.3f - vw, ty), g_capture == i ? kAccent : col_c, v.c_str());
+        } else {
+            dl->AddText(ImVec2(tx, ty), col_c, i == kReset ? "Reset to defaults" : "Back");
+        }
+        if (hover && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+            g_bsel = i;
+            g_wait_release = true;
+            if (i < n) {
+                g_capture = i;
+            } else if (i == kReset) {
+                kbm::ResetBindings();
+                app::Save();
+            } else {
+                g_bindings = false;
+                return;
+            }
+        }
+    }
+    const char* note = g_capture >= 0 ? "Press the key or mouse button for this control. Delete leaves it unbound."
+                                      : "Enter or a click, then press the key  -  Esc/B back";
+    dl->AddText(ImVec2(p0.x + pad, p1.y - note_h + fs * 0.6f), kGrey, note);
+}
 
 // one frame of the panel; returns the player's choice once made
 Result Draw(int& sel, float scale) {
     ImGuiIO& io = ImGui::GetIO();
     ImDrawList* dl = ImGui::GetBackgroundDrawList();
     dl->AddRectFilled(ImVec2(0, 0), io.DisplaySize, kBackdrop);
+    if (g_bindings) {
+        DrawBindings(scale);
+        return Result::Pending;
+    }
+    if (g_wait_release) {  // back from the page: the key or click that closed it is let go first
+        if (AnyKeyDown()) return Result::Pending;
+        g_wait_release = false;
+    }
 
     // input: keyboard and the controller's d-pad / sticks through ImGui's navigation keys; none for a few frames
     // after the file dialog
@@ -288,14 +449,16 @@ Result Draw(int& sel, float scale) {
         return Result::Quit;
 
     float fs = ImGui::GetFontSize();
-    float row_h = fs * 1.9f, pad = fs * 1.6f;
+    float pad = fs * 1.6f, title_h = fs * 4.2f, note_h = fs * 3.2f;
+    // rows as tall as the window allows, up to 1.9 lines each
+    float row_h = std::min(fs * 1.9f, (io.DisplaySize.y - fs * 2 - title_h - note_h - pad) / kRows);
     float label_w = ImGui::CalcTextSize("Launcher at startup").x + fs * 3;
     float value_w = std::max(ImGui::CalcTextSize("< 200% (2x supersampling) >").x,
                              ImGui::CalcTextSize("...ssssssssssssssssssssssssssssssssssssssssss  (other release)").x) + fs;
     const char* kHint = "Up/Down choose  -  Left/Right change  -  Enter/A start  -  Esc/B quit";
     float text_w = ImGui::CalcTextSize(kHint).x;
     for (int r = 0; r < kRows; r++) text_w = std::max(text_w, ImGui::CalcTextSize(Note(r)).x);
-    float pw = std::max(label_w + value_w, text_w) + pad * 2, title_h = fs * 4.2f, note_h = fs * 3.2f;
+    float pw = std::max(label_w + value_w, text_w) + pad * 2;
     float ph = title_h + row_h * kRows + note_h + pad;
     ImVec2 p0((io.DisplaySize.x - pw) / 2, (io.DisplaySize.y - ph) / 2), p1(p0.x + pw, p0.y + ph);
     dl->AddRectFilled(p0, p1, kPanel, fs * 0.4f);
@@ -312,11 +475,11 @@ Result Draw(int& sel, float scale) {
         if (hover && (io.MouseDelta.x != 0 || io.MouseDelta.y != 0)) sel = r;
         if (r == sel) dl->AddRectFilled(a, b, kHighlight, fs * 0.25f);
         float ty = a.y + (row_h - fs) / 2;
-        bool action = r == kStart || r == kGame || r == kQuit;
+        bool action = r == kStart || r == kGame || r == kQuit || r == kBindings;
         ImU32 col = r == kStart ? (GameReady() ? kAccent : kGrey) : r == sel ? kWhite : kGrey;
         dl->AddText(ImVec2(p0.x + pad, ty), r == kStart && r == sel ? kWhite : col, Label(r));
-        if (HasOption(r) || r == kGame) {
-            std::string v = r == sel && r != kGame ? "<  " + Value(r) + "  >" : Value(r);
+        if (HasOption(r) || r == kGame || r == kBindings) {
+            std::string v = r == kBindings ? std::string(">") : r == sel && r != kGame ? "<  " + Value(r) + "  >" : Value(r);
             float vw = ImGui::CalcTextSize(v.c_str()).x;
             ImU32 vc = r == kGame && g_game.probe != app::GameProbe::Match ? kAccent : r == sel ? kWhite : kGrey;
             dl->AddText(ImVec2(p1.x - pad - vw, ty), vc, v.c_str());
@@ -333,6 +496,7 @@ Result Draw(int& sel, float scale) {
         else if (sel == kStart) result = Result::Start;
         else if (sel == kGame && BrowseGame() && GameReady()) sel = kStart;  // next Enter starts the game
         else if (sel == kQuit) result = Result::Quit;
+        else if (sel == kBindings) OpenBindings();
         else Change(sel, 1);
     }
     dl->AddText(ImVec2(p0.x + pad, p1.y - note_h + fs * 0.6f), kGrey, Note(sel));
