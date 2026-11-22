@@ -50,7 +50,8 @@ texture filtering, video upscaling, vsync, frame rate, FPS counter, trigger and 
 | `game_path` | the game: a disc image (`.iso`) or the extracted game's folder; empty uses `assets` |
 | `input_device` | 0 auto (keyboard, mouse and controller; the controller only vibrates when used last), 1 controller only, 2 keyboard and mouse (no controller rumble) |
 | `[controls]` | the keyboard and mouse bindings, set on the launcher's **Key bindings** page |
-| `mouse_sensitivity`, `mouse_pitch` | mouse steering (off by default: the keys steer, the mouse buttons fire) |
+| `mouse_mode` | what moving the mouse does: 0 nothing (default: the keys steer, the mouse buttons fire), 1 the left stick (steer), 2 the right stick (roll, speed, maneuvers) |
+| `mouse_sensitivity`, `mouse_pitch` | how far the mouse pushes the stick; on the left stick, whether it pitches too |
 | `impulse_triggers` | Xbox One / Series trigger motors follow the guns, afterburner and crashes (on by default) |
 | `crash_rumble` | crashes held and faded into a strong jolt; false keeps the game's very short one (on by default) |
 | `launcher` | false starts the game directly |

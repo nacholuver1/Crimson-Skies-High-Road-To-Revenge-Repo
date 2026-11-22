@@ -47,7 +47,9 @@ Settings (saved to settings.toml next to the program; the launcher writes it)
   Input device                Auto: keyboard, mouse and controller all work, and the controller only
                               vibrates when you used it last. Or Controller only, or Keyboard and mouse.
   Key bindings                every keyboard and mouse control: pick one, press the new key
-  Mouse steering, pitch       steer with the mouse instead of the keys (off by default)
+  Mouse moves                 Off (the keys steer), Left stick (steer) or Right stick (roll, speed and
+                              the maneuvers); holding Ctrl puts the mouse on the right stick any time
+  Mouse sensitivity, pitch    how far the mouse pushes the stick; pitch: on the left stick, up/down too
   Trigger rumble              Xbox One / Series controllers: the right trigger vibrates with the main guns (RT),
                               the left with the secondary weapon (LT), both lightly with the afterburner (Y) and
                               with crashes
@@ -76,7 +78,9 @@ Keyboard and mouse (change any of these in the launcher's Key bindings page)
   Q / E          roll left / right            R / F          speed up / slow down
   Left mouse     main guns                    Right mouse    secondary weapon
   Shift          boost                        Space          brake
-  V, middle mouse  special moves              1 / 2 / Z / X / C  A / X / black / white / left stick click
+  V, middle mouse  R3 (right stick click)     1 / 2 / Z / X / C  A / X / black / white / L3
+  Mouse 4        Immelmann (both sticks back + R3)
+  Ctrl (hold)    the mouse moves the right stick
   Arrows         D-pad                        Esc            pause (START)
   Enter / Backspace  menu accept / back       Tab            BACK
 

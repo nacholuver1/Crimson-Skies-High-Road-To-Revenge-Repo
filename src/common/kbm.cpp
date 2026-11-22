@@ -22,11 +22,13 @@
 
 #include "app/app.h"
 #include "core/input.h"
+#include "imgui.h"
 
 namespace kbm {
 
 uint32_t g_device = kAuto;
-uint32_t g_mouse = 0;  // off: the keys steer, the mouse buttons fire
+uint32_t g_mouse = 100;
+uint32_t g_mouse_mode = kMouseOff;  // off: the keys steer, the mouse buttons fire
 bool g_mouse_pitch = false;
 
 namespace {
@@ -34,7 +36,7 @@ namespace {
 enum : int {
     kNoseDown, kNoseUp, kTurnLeft, kTurnRight, kRollLeft, kRollRight, kSpeedUp, kSpeedDown, kPrimary, kSecondary,
     kBoost, kBrake, kSpecial, kButtonA, kButtonX, kBlack, kWhite, kLeftClick, kDpadUp, kDpadDown, kDpadLeft,
-    kDpadRight, kStart, kBack, kAccept, kCancel, kActionCount
+    kDpadRight, kStart, kBack, kAccept, kCancel, kMouseRightHold, kImmelmann, kActionCount
 };
 
 std::vector<Action> Defaults() {
@@ -51,12 +53,12 @@ std::vector<Action> Defaults() {
         {"secondary", "Secondary weapon (LT)", {VK_RBUTTON}},
         {"boost", "Boost (Y)", {VK_SHIFT}},
         {"brake", "Brake (B)", {VK_SPACE}},
-        {"special", "Special moves (right stick click)", {'V', VK_MBUTTON}},
+        {"special", "R3 (right stick click)", {'V', VK_MBUTTON}},
         {"button_a", "A button", {'1'}},
         {"button_x", "X button", {'2'}},
         {"black", "Black button", {'Z'}},
         {"white", "White button", {'X'}},
-        {"left_click", "Left stick click", {'C'}},
+        {"left_click", "L3 (left stick click)", {'C'}},
         {"dpad_up", "D-pad up", {VK_UP}},
         {"dpad_down", "D-pad down", {VK_DOWN}},
         {"dpad_left", "D-pad left", {VK_LEFT}},
@@ -65,6 +67,8 @@ std::vector<Action> Defaults() {
         {"back", "BACK", {VK_TAB}},
         {"accept", "Menu accept (A)", {VK_RETURN}},
         {"cancel", "Menu back (B)", {VK_BACK}},
+        {"mouse_right_stick", "Mouse moves right stick (hold)", {VK_CONTROL}},
+        {"immelmann", "Immelmann (sticks back + R3)", {VK_XBUTTON1}},
     };
 }
 
@@ -74,6 +78,8 @@ std::atomic<int> g_dx{0}, g_dy{0};  // raw mouse motion since the last poll
 std::atomic<int64_t> g_kbm_used{0}, g_pad_used{0};  // steady clock ms of the last use of each
 bool g_registered = false;
 bool g_clipped = false;
+bool g_hidden = false;            // the window thread's cursor is hidden (ShowCursor)
+std::atomic<bool> g_hide{false};  // keyboard and mouse in use with the game in front
 float g_sx = 0, g_sy = 0;  // the mouse's virtual stick, -1..1
 
 constexpr float kCountsForFull = 400.0f;  // mouse counts that push the stick all the way at 100%
@@ -226,16 +232,27 @@ bool Message(void* hwnd, uint32_t msg, uintptr_t wp, intptr_t lp, intptr_t* resu
             }
             return false;
         case WM_ACTIVATE:
-            if (LOWORD(wp) == WA_INACTIVE) Clip(w, false);
-            return false;
-        default:
-            // keep the cursor in the window while steering, let it go otherwise
-            if (On() && Front()) {
-                if (!g_clipped) Clip(w, true);
-            } else if (g_clipped) {
+            if (LOWORD(wp) == WA_INACTIVE) {
                 Clip(w, false);
+                if (g_hidden) {
+                    ShowCursor(TRUE);
+                    g_hidden = false;
+                }
+                g_hide = false;
             }
             return false;
+        default: {
+            // keyboard and mouse in use with the game in front: the cursor hidden and kept in the window
+            bool hide = On() && Front();
+            g_hide = hide;
+            if (hide && !g_clipped) Clip(w, true);
+            if (!hide && g_clipped) Clip(w, false);
+            if (hide != g_hidden) {
+                ShowCursor(hide ? FALSE : TRUE);
+                g_hidden = hide;
+            }
+            return false;
+        }
     }
 }
 
@@ -259,24 +276,44 @@ void Pad(int port, input::Pad& p) {
     for (int a = 0; a < kActionCount && !used; a++) used = Down(a);
     if (used) g_kbm_used = now_ms;
 
-    // left stick: the mouse's virtual stick (right turns right; up pushes the nose down, like a stick), then the keys
-    if (g_mouse > 0) {
-        float k = float(g_mouse) / 100.0f / kCountsForFull;
+    // the mouse's virtual stick: moving the mouse pushes it (up is stick up), it recentres on its own. It is the left
+    // stick (steering: right turns right, up pushes the nose down) or, chosen in mouse_mode or while the hold key is
+    // down, the right stick (roll, speed and the maneuvers: mouse down flicks it down for an Immelmann)
+    bool right = g_mouse_mode == kMouseRight || Down(kMouseRightHold);
+    bool moves = right || g_mouse_mode == kMouseLeft;
+    if (moves) {
+        float k = float(g_mouse ? g_mouse : 100) / 100.0f / kCountsForFull;  // 0: an older settings file's "off"
         g_sx = std::clamp(g_sx + dx * k, -1.0f, 1.0f);
-        g_sy = g_mouse_pitch ? std::clamp(g_sy - dy * k, -1.0f, 1.0f) : 0.0f;
-        float keep = std::exp(-kRecentre * dt);
-        g_sx *= keep;
-        g_sy *= keep;
+        g_sy = right || g_mouse_pitch ? std::clamp(g_sy - dy * k, -1.0f, 1.0f) : 0.0f;
     }
-    float lx = g_sx + float(Down(kTurnRight)) - float(Down(kTurnLeft));
-    float ly = g_sy + float(Down(kNoseDown)) - float(Down(kNoseUp));  // stick back pulls the nose up
+    float keep = std::exp(-kRecentre * dt);
+    g_sx *= keep;
+    g_sy *= keep;
+    float mlx = moves && !right ? g_sx : 0.0f, mly = moves && !right ? g_sy : 0.0f;
+    float mrx = right ? g_sx : 0.0f, mry = right ? g_sy : 0.0f;
+
+    // left stick: the keys steer (stick back pulls the nose up)
+    float lx = mlx + float(Down(kTurnRight)) - float(Down(kTurnLeft));
+    float ly = mly + float(Down(kNoseDown)) - float(Down(kNoseUp));
     p.lx = Merge(p.lx, Axis(lx));
     p.ly = Merge(p.ly, Axis(ly));
 
-    // right stick: speed up / down, roll left / right
-    float rx = float(Down(kRollRight)) - float(Down(kRollLeft)), ry = float(Down(kSpeedUp)) - float(Down(kSpeedDown));
+    // right stick: roll left / right, speed up / down
+    float rx = mrx + float(Down(kRollRight)) - float(Down(kRollLeft));
+    float ry = mry + float(Down(kSpeedUp)) - float(Down(kSpeedDown));
     p.rx = Merge(p.rx, Axis(rx));
     p.ry = Merge(p.ry, Axis(ry));
+
+    // Immelmann: both sticks pulled back, then the right stick clicked (R3) while they are held
+    static int64_t immelmann_since = -1;
+    if (Down(kImmelmann)) {
+        if (immelmann_since < 0) immelmann_since = now_ms;
+        p.ly = Axis(-1.0f);
+        p.ry = Axis(-1.0f);
+        if (now_ms - immelmann_since >= 100) p.buttons |= uint16_t(1u << 7);  // the click a moment after the sticks
+    } else {
+        immelmann_since = -1;
+    }
 
     // A B X Y black white LT RT
     auto press = [&](int i, bool on) {
@@ -295,6 +332,13 @@ void Pad(int port, input::Pad& p) {
     const int b[8] = {kDpadUp, kDpadDown, kDpadLeft, kDpadRight, kStart, kBack, kLeftClick, kSpecial};
     for (int i = 0; i < 8; i++)
         if (Down(b[i])) p.buttons |= uint16_t(1u << i);
+}
+
+// ImGui sets the arrow cursor again every frame unless told not to change it
+void Ui() {
+    ImGuiIO& io = ImGui::GetIO();
+    if (g_hide) io.ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
+    else io.ConfigFlags &= ~ImGuiConfigFlags_NoMouseCursorChange;
 }
 
 bool MuteRumble() {

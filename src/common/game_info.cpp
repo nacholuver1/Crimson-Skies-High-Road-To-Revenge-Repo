@@ -26,6 +26,12 @@ void Pad(int port, input::Pad& pad) {
     feedback::Pad(port, pad);
 }
 
+// each frame's ImGui: the cursor rule, then the FPS overlay
+void Ui(double fps) {
+    kbm::Ui();
+    fps_overlay::Draw(fps);
+}
+
 // each rumble the game sets: none while the keyboard and mouse are in use, else the stronger crashes and triggers
 void Rumble(int port, uint16_t& left, uint16_t& right) {
     if (kbm::MuteRumble()) {
@@ -54,7 +60,8 @@ const app::GameInfo app::kGame = {
                 {"crash_rumble", &feedback::g_crash, nullptr},         // collisions held and faded
                 {"fov", nullptr, &widescreen::g_fov},
                 {"input_device", nullptr, &kbm::g_device},        // 0 auto, 1 controller, 2 keyboard and mouse
-                {"mouse_sensitivity", nullptr, &kbm::g_mouse},    // mouse steering, percent; 0 turns it off
+                {"mouse_mode", nullptr, &kbm::g_mouse_mode},      // 0 off, 1 left stick, 2 right stick
+                {"mouse_sensitivity", nullptr, &kbm::g_mouse},    // percent
                 {"mouse_pitch", &kbm::g_mouse_pitch, nullptr}},   // the mouse pitches as well as turns                 // field of view, percent of the original
     .load = kbm::Load,                      // reads more from the settings file's toml::table
     .save = kbm::Save,                      // writes more into it
@@ -62,7 +69,7 @@ const app::GameInfo app::kGame = {
     .loaded = nullptr,                    // image in memory, before its entry point runs
     .window = nullptr,                    // the game window is up
     .message = Message,      // window messages first; true takes one
-    .ui = fps_overlay::Draw,              // ImGui drawing each frame
+    .ui = Ui,              // ImGui drawing each frame
     .pad = Pad,                 // changes a polled pad
     .rumble = Rumble,           // changes a rumble before it is set
 };

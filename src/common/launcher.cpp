@@ -66,10 +66,11 @@ const Choice kFps[] = {{30, "30 (original)"}, {60, "60"}, {120, "120"}, {144, "1
 const Choice kFovs[] = {{80, "80%"}, {90, "90%"}, {100, "100% (original)"}, {110, "110%"}, {120, "120%"}, {130, "130%"}};
 const Choice kSways[] = {{0, "Off"}, {25, "25%"}, {50, "50%"}, {75, "75%"}, {100, "100% (original)"}};
 const Choice kDevices[] = {{0, "Auto"}, {1, "Controller"}, {2, "Keyboard and mouse"}};
-const Choice kMice[] = {{0, "Off"}, {50, "50%"}, {75, "75%"}, {100, "100%"}, {150, "150%"}, {200, "200%"}, {300, "300%"}};
+const Choice kMouseModes[] = {{0, "Off"}, {1, "Left stick (steer)"}, {2, "Right stick (roll, maneuvers)"}};
+const Choice kMice[] = {{50, "50%"}, {75, "75%"}, {100, "100%"}, {150, "150%"}, {200, "200%"}, {300, "300%"}};
 const Choice kAudio[] = {{0, "Automatic"}, {1, "Stereo"}, {2, "5.1 surround"}, {3, "Mono"}};
 
-enum Row { kStart, kGame, kDisplayMode, kResolution, kRenderRes, kAntiAlias, kFiltering, kVideoUpscale, kVsync, kFrameRate, kFov, kSway, kFpsCounter, kDevice, kBindings, kMouse, kMousePitch, kTriggers, kCrash,
+enum Row { kStart, kGame, kDisplayMode, kResolution, kRenderRes, kAntiAlias, kFiltering, kVideoUpscale, kVsync, kFrameRate, kFov, kSway, kFpsCounter, kDevice, kBindings, kMouseMode, kMouse, kMousePitch, kTriggers, kCrash,
            kAudioOut, kLauncherAtStart, kQuit, kRows };
 
 template <size_t N>
@@ -166,7 +167,8 @@ const char* Label(int row) {
         case kFpsCounter: return "FPS counter";
         case kDevice: return "Input device";
         case kBindings: return "Key bindings";
-        case kMouse: return "Mouse steering";
+        case kMouseMode: return "Mouse moves";
+        case kMouse: return "Mouse sensitivity";
         case kMousePitch: return "Mouse pitch";
         case kTriggers: return "Trigger rumble";
         case kCrash: return "Crash rumble";
@@ -201,8 +203,9 @@ const char* Note(int row) {
         case kFpsCounter: return "Frame rate in the corner. F2 shows or hides it in game.";
         case kDevice: return "Auto: both work, and the controller only vibrates when you used it last.";
         case kBindings: return "Enter or a click: choose the keys and mouse buttons for every control.";
-        case kMouse: return "How far moving the mouse turns the plane. Off: keys and mouse buttons only.";
-        case kMousePitch: return "On: moving the mouse up and down pitches the nose too.";
+        case kMouseMode: return "Right stick: a quick mouse move down does the Immelmann. Ctrl (rebindable) holds it.";
+        case kMouse: return "How far moving the mouse pushes the stick.";
+        case kMousePitch: return "With the mouse on the left stick: moving it up and down pitches the nose too.";
         case kTriggers: return "Xbox One / Series controllers: the triggers vibrate with the guns, afterburner and crashes.";
         case kCrash: return "Makes crashes a strong jolt; the game's own crash rumble is very short.";
         case kAudioOut: return "Automatic follows your Windows speaker setup.";
@@ -237,7 +240,8 @@ std::string Value(int row) {
         case kFov: return kFovs[IndexOf(kFovs, widescreen::Fov())].label;
         case kFpsCounter: return fps_overlay::g_show ? "On" : "Off";
         case kDevice: return kDevices[IndexOf(kDevices, kbm::g_device)].label;
-        case kMouse: return kMice[IndexOf(kMice, kbm::g_mouse)].label;
+        case kMouseMode: return kMouseModes[IndexOf(kMouseModes, kbm::g_mouse_mode)].label;
+        case kMouse: return kMice[IndexOf(kMice, kbm::g_mouse ? kbm::g_mouse : 100)].label;
         case kMousePitch: return kbm::g_mouse_pitch ? "On" : "Off";
         case kTriggers: return feedback::g_triggers ? "On" : "Off";
         case kCrash: return feedback::g_crash ? "Stronger" : "Original";
@@ -267,7 +271,8 @@ void Change(int row, int d) {
         case kFov: widescreen::g_fov = Step(kFovs, widescreen::Fov(), d); break;
         case kFpsCounter: fps_overlay::g_show = !fps_overlay::g_show; break;
         case kDevice: kbm::g_device = Step(kDevices, kbm::g_device, d); break;
-        case kMouse: kbm::g_mouse = Step(kMice, kbm::g_mouse, d); break;
+        case kMouseMode: kbm::g_mouse_mode = Step(kMouseModes, kbm::g_mouse_mode, d); break;
+        case kMouse: kbm::g_mouse = Step(kMice, kbm::g_mouse ? kbm::g_mouse : 100, d); break;
         case kMousePitch: kbm::g_mouse_pitch = !kbm::g_mouse_pitch; break;
         case kTriggers: feedback::g_triggers = !feedback::g_triggers; break;
         case kCrash: feedback::g_crash = !feedback::g_crash; break;
@@ -386,7 +391,7 @@ void DrawBindings(float scale) {
         float r = i < n ? float(i % per_col) : per_col + 0.4f;
         float x = p0.x + pad + col * (col_w + pad);
         ImVec2 a(x - pad * 0.3f, p0.y + title_h + r * row_h), b(x + col_w, a.y + row_h);
-        bool hover = idle && ImGui::IsMouseHoveringRect(a, b);
+        bool hover = idle && ImGui::IsMouseHoveringRect(a, b, false);  // not clipped to ImGui's default window
         if (hover && (io.MouseDelta.x != 0 || io.MouseDelta.y != 0)) g_bsel = i;
         if (i == g_bsel) dl->AddRectFilled(a, b, kHighlight, fs * 0.25f);
         float ty = a.y + (row_h - fs) / 2, tx = a.x + pad * 0.3f;
@@ -471,7 +476,7 @@ Result Draw(int& sel, float scale) {
     Result result = Result::Pending;
     for (int r = 0; r < kRows; r++) {
         ImVec2 a(p0.x + pad * 0.5f, p0.y + title_h + r * row_h), b(p1.x - pad * 0.5f, a.y + row_h);
-        bool hover = input && ImGui::IsMouseHoveringRect(a, b);
+        bool hover = input && ImGui::IsMouseHoveringRect(a, b, false);  // not clipped to ImGui's default window
         if (hover && (io.MouseDelta.x != 0 || io.MouseDelta.y != 0)) sel = r;
         if (r == sel) dl->AddRectFilled(a, b, kHighlight, fs * 0.25f);
         float ty = a.y + (row_h - fs) / 2;
