@@ -232,7 +232,35 @@ The game restarts its own executable (`HalReturnToFirmware`, `default.xbe`) to l
 - [xemu #147](https://github.com/xemu-project/xemu/issues/147): `Gun_2D` and other `_2D` sounds play muffled, at about 11 kHz instead of 22 kHz, and `_3D` sounds are too loud at distance.
 - xemu #2902 / #1098: frame rate drops near the volcano in mission 2 (on xemu).
 
-## Open: freeze on a loading screen (2026-11-21)
+## Loading-screen freeze: fixed (2026-11-21)
+
+Reading the frozen game's memory with `tools/guest_locks.ps1` showed the cause: a critical section with
+`LockCount 4976`, `RecursionCount 1`, `OwningThread 0`. It was held and owned by no one, and the thread that held
+it was waiting on it again. The SDK's `RtlEnterCriticalSection` / `RtlLeaveCriticalSection` used the section's
+embedded event, found through a stamp in guest memory, and a waiter could take a signal meant for another. No other
+port on this toolkit had changed these functions (18 SDK copies compared). The fork now keeps the lock on the host,
+by the section's address (owner, recursion, condition variable), and only mirrors the guest's fields. No loading
+freeze in the play sessions since (campaign, 30, 60 and 144 fps).
+
+(The capture that showed the broken section came from the **Demos** menu item's freeze, which then pointed at this
+general bug.)
+
+## Demos menu (known issue)
+
+**Demos** launches `d:\cdx.xbe`, Microsoft's demo launcher (title "CDX", XDK 5659 with XACT, `XSNDTRK`): trailers
+from `videos\*.xmv` and a playable Voodoo Vince demo (`demos\Vince`). Only `default.xbe` is recompiled, so the
+SDK refuses the launch and the game, already shut down for the hand-over, ends on its fatal screen. Left as is for
+now. Options: relaunch `default.xbe` instead, or recompile `cdx.xbe` and the Vince demo as more images.
+
+## Performance and graphics (2026-11-21)
+
+- The game holds 30 fps with about 1.3 ms of host time per frame. Earlier drops came from the texture diagnostic
+  under `XBE_LOG`, now behind `XBE_TEXTURE_DIAG`.
+- Frame rate unlock: hooks at `0x1308D9` / `0x130B23` (the gate's period) and `0x12FBCD` (the ms carry). It was
+  tested by play at 60 and 144 with no timing problems.
+- FXAA on the presented frame and box-filtered supersampling are in the fork. The launcher sets both.
+
+## Loading-screen freeze: first analysis (2026-11-21)
 
 Seen once, in mission 2 after the AA gun fix. One core busy. lldb on the frozen game showed:
 

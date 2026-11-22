@@ -23,6 +23,7 @@ for ($i = 0; $i -lt $Count; $i++) {
     $cs = $Base + $i * $Stride
     $owner = Read-Guest32 ($cs + 0x18)
     $tid = if ($owner) { '{0:X}' -f (Read-Guest32 ($owner + 0x12C)) } else { '-' }
-    "cs[{0}] @{1:X}: lock {2} recursion {3} owner {4:X8} (thread {5})" -f $i, $cs, [int](Read-Guest32 ($cs + 0x10)),
+    $lock = [BitConverter]::ToInt32([BitConverter]::GetBytes([uint32](Read-Guest32 ($cs + 0x10))), 0)  # -1 = free
+    "cs[{0}] @{1:X}: lock {2} recursion {3} owner {4:X8} (thread {5})" -f $i, $cs, $lock,
         (Read-Guest32 ($cs + 0x14)), $owner, $tid
 }

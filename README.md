@@ -4,10 +4,9 @@ An unofficial native PC port of **Crimson Skies: High Road to Revenge** (origina
 made by *static recompilation*: the game's code is translated ahead of time into a normal
 x64 program, with a reimplemented Xbox kernel, GPU, audio and input layer underneath.
 
-**Status: early, reaches gameplay.** The retail `default.xbe` builds and runs through the intro, the menus
-and a mission load into flying, with sound. Full missions, saves and settings are still being tested. Built on
-[XboxXBERecomp](https://github.com/TGP482/XboxXBERecomp) through a fork with the fixes this game needed
-([nacholuver1/XboxXBERecomp](https://github.com/nacholuver1/XboxXBERecomp), branch `crimson-skies`).
+**Status: playable, being tested.** The retail `default.xbe` builds and runs the campaign with sound and saves, at
+30 to 240 fps. Known issue: the main menu's **Demos** (Microsoft's demo launcher, `cdx.xbe`) is not recompiled and
+freezes the game.
 
 **This repository contains no game data.** No disc image, no game files, and none of the
 code generated from the game's executable. To play, you will need your own copy of the game.
@@ -41,6 +40,28 @@ The toolchain is [XboxXBERecomp](https://github.com/TGP482/XboxXBERecomp) (x86 t
 libraries on the host, Direct3D 12 and XAudio2), with the XDK 5659 signatures of
 [TGP482/XboxXBERecomp#27](https://github.com/TGP482/XboxXBERecomp/pull/27). See [docs/PLAN.md](docs/PLAN.md)
 and [docs/RESEARCH.md](docs/RESEARCH.md) for the plan, the fork's fixes and what other projects contributed.
+
+## Settings
+
+A launcher opens before the game: display mode, resolution, render resolution (up to 300%, supersampling above
+100%), FXAA, texture filtering, vsync, frame rate, FPS counter and audio output. Every choice is saved in
+`settings.toml` beside the executable:
+
+| Key | Values |
+|---|---|
+| `game_fps` | 30 (the original) to 240; 60 by default. The renderer's `fps_cap` is raised to match. |
+| `show_fps` | FPS counter in the corner; **F2** toggles it in game |
+| `fxaa` | FXAA on the final image |
+| `render_percent` | of the output height; above 100 renders bigger and averages down |
+| `anisotropic_filtering` | 0 (as the game asks), 2, 4, 8, 16 |
+| `launcher` | false starts the game directly |
+
+Command line: `--no-launcher` skips the launcher once, `--launcher` shows it even when it is turned off.
+
+The frame rate unlock follows crazyriddler's frame rate patches for this game in xbased: the game's own frame gate
+gets the new period, and the milliseconds its clock drops each frame are carried into the next
+(`src/common/frame_rate.cpp`). The launcher's look and behaviour follow the Blitz recomps' launcher, itself adapted
+from [darkuni's recomp menus](https://github.com/darkuni/outrun-arcade-recomp) (MIT).
 
 ## Tools
 

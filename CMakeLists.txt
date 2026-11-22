@@ -37,3 +37,7 @@ endif()
 
 # target name = GAME_EXE in build.bat, xbe = GAME_XBE
 add_xbe_image(CrimsonSkies default.xbe game.toml ${GAME_PARTITIONS} game)
+
+# the pre-game launcher (src/common/launcher.cpp) draws with ImGui on Direct3D 11, before the game's window
+target_sources(CrimsonSkies PRIVATE ${imgui_SOURCE_DIR}/backends/imgui_impl_dx11.cpp)
+target_link_libraries(CrimsonSkies PRIVATE d3d11)
