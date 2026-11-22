@@ -27,6 +27,7 @@ const app::GameInfo app::kGame = {
     .images = {{"default.xbe", "CrimsonSkies"}},  // each recompiled xbe and its exe, for title launches
     .options = {{"show_fps", &fps_overlay::g_show, nullptr},  // F2 toggles it in game
                 {"game_fps", nullptr, &frame_rate::g_fps},    // 30 (original) to 240
+                {"camera_sway", nullptr, &frame_rate::g_sway},  // turbulence sway of the camera, percent
                 {"launcher", &launcher::g_show, nullptr},     // the pre-game launcher
                 {"impulse_triggers", &feedback::g_triggers, nullptr},  // trigger motors follow the game's rumble
                 {"crash_rumble", &feedback::g_crash, nullptr},         // collisions held and faded

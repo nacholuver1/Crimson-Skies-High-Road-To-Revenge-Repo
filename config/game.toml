@@ -311,3 +311,8 @@ call = "FrameRate_Dt"
 [[hook]]
 at = 0x2D6DA
 call = "Widescreen_Scale"
+
+# the camera's view sway added once per frame, scaled to the frame time (src/common/frame_rate.cpp)
+[[hook]]
+at = 0xD41B2
+call = "FrameRate_ViewSway"

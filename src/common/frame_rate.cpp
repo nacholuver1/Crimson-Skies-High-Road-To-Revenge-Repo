@@ -32,6 +32,7 @@
 
 namespace frame_rate {
 uint32_t g_fps = 60;
+uint32_t g_sway = 100;
 
 uint32_t Fps() { return g_fps < 30 ? 30 : g_fps > 240 ? 240 : g_fps; }
 
@@ -82,4 +83,23 @@ void FrameRate_Dt(X86Context& ctx, uint8_t* base) {
     float dt = float(std::min(g_exact_ms * 0.001, 0.5));
     ctx.xmm[0].f[0] = dt;
     std::memcpy(base + 0x3219B4, &dt, 4);
+}
+
+// at 0xD41B2 in the chase camera's update (0xD3E40): [esp+0x30..0x38] = this frame's view sway (0x626B0: sines of the
+// game time at ViewSwayFreq, scaled by ViewSwayDist), about to be added to the camera's angles (+0xB24..0xB2C). The
+// game adds it once per frame while the camera's own steering back runs on the frame time, so the sway grew with the
+// frame rate (a nauseating circling at 144). Scaled by the frame time over 1/30 it matches the console's 30 fps.
+// camera_sway then scales it down further for players it makes motion sick (0 turns it off).
+void FrameRate_ViewSway(X86Context& ctx, uint8_t* base) {
+    float k = std::min(frame_rate::g_sway, 100u) / 100.0f;
+    if (frame_rate::Fps() > 30) {
+        float dt;
+        std::memcpy(&dt, base + 0x3219BC, 4);
+        if (dt > 0) k *= std::min(dt * 30.0f, 1.0f);
+    }
+    if (k == 1.0f) return;
+    float v[3];
+    std::memcpy(v, base + ctx.esp + 0x30, 12);
+    for (float& x : v) x *= k;
+    std::memcpy(base + ctx.esp + 0x30, v, 12);
 }

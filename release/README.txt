@@ -40,6 +40,8 @@ Settings (saved to settings.toml next to the program; the launcher writes it)
   Video upscaling             cutscenes and stills: bicubic upscaling and deinterlacing instead of a plain stretch
   Frame rate                  30 (the original) to 240. Set it to your monitor's refresh rate. The game's speed
                               stays right at any of them.
+  Camera sway                 the camera's turbulence sway: lower it, or turn it off, if the motion makes you
+                              feel sick (100% is the original)
   Field of view               80% to 130% of the original view; wider can help with motion sickness.
                               On a widescreen monitor the 3D view is true 16:9 (the HUD stays stretched).
   Trigger rumble              Xbox One / Series controllers: the right trigger vibrates with the main guns (RT),
@@ -70,8 +72,6 @@ Known issues
     translated: the game stops on its error screen. Restart the program.
   - The game was made for 30 fps. Higher frame rates were tested through the campaign without problems, but if
     something feels too fast or slow, set the frame rate to 30 and report it.
-  - Above 30 fps the planes bob up and down in the turbulence more than in the original. 60 is milder than
-    144 or 240; 30 matches the console. A fix is being worked on.
   - The HUD and menus are drawn for a 4:3 screen and look stretched on a widescreen monitor (the 3D view is
     true 16:9).
 

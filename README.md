@@ -15,7 +15,7 @@ game's executable: a release translates the game's code on the player's own PC, 
 
 **Status: playable.** The campaign runs with sound and saves, at 30 to 240 fps, in true 16:9 on widescreen
 monitors. Known issues: the main menu's **Demos** (Microsoft's demo launcher, `cdx.xbe`) is not translated and
-stops the game; above 30 fps the planes' turbulence bobbing is stronger than in the original (60 fps is milder).
+stops the game.
 
 ## Playing
 
@@ -39,6 +39,7 @@ texture filtering, video upscaling, vsync, frame rate, FPS counter, trigger and 
 | Key | Values |
 |---|---|
 | `game_fps` | 30 (the original) to 240; 60 by default. The renderer's `fps_cap` is raised to match. |
+| `camera_sway` | the camera's turbulence sway in percent, 0 (off) to 100 (the original, default) |
 | `fov` | field of view in percent of the original, 80 to 130 (100 by default). On a widescreen output the 3D view is true 16:9. |
 | `show_fps` | FPS counter in the corner; **F2** toggles it in game |
 | `fxaa` | FXAA on the final image |
