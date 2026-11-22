@@ -77,6 +77,7 @@ uint32_t Step(const Choice (&c)[N], uint32_t v, int d) {
 }
 
 HWND g_hwnd = nullptr;
+int g_input_cooldown = 0;  // frames that ignore input after the file dialog closes
 
 // a path as UTF-8 in a std::string (C++20's u8string is std::u8string)
 std::string Utf8(const std::filesystem::path& p) {
@@ -100,8 +101,8 @@ void ProbeGame() {
 
 bool GameReady() { return g_game.probe != app::GameProbe::Missing; }
 
-// a file dialog for the disc image or the extracted game's default.xbe
-void BrowseGame() {
+// a file dialog for the disc image or the extracted game's default.xbe; true when a game was picked
+bool BrowseGame() {
     wchar_t file[MAX_PATH] = {};
     OPENFILENAMEW of{sizeof(of)};
     of.hwndOwner = g_hwnd;
@@ -110,12 +111,24 @@ void BrowseGame() {
     of.nMaxFile = MAX_PATH;
     of.lpstrTitle = L"Choose your Crimson Skies: High Road to Revenge disc image (.iso) or default.xbe";
     of.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST | OFN_NOCHANGEDIR;
-    if (!GetOpenFileNameW(&of)) return;
+    bool picked = GetOpenFileNameW(&of) != 0;
+    // the key or click that closed the dialog (Enter, the double-click's second click) must not reach the launcher:
+    // it would select the Game row again and reopen the dialog
+    MSG m;
+    while (PeekMessageW(&m, g_hwnd, WM_KEYFIRST, WM_KEYLAST, PM_REMOVE)) {}
+    while (PeekMessageW(&m, g_hwnd, WM_MOUSEFIRST, WM_MOUSELAST, PM_REMOVE)) {}
+    ImGuiIO& io = ImGui::GetIO();
+    io.ClearEventsQueue();
+    io.ClearInputKeys();
+    io.ClearInputMouse();
+    g_input_cooldown = 15;
+    if (!picked) return false;
     std::filesystem::path chosen(file);
     if (chosen.filename() == L"default.xbe") chosen = chosen.parent_path();  // an extracted game: its folder
     app::Get().game_path = Utf8(chosen);
     app::Save();
     ProbeGame();
+    return true;
 }
 
 std::string ShortPath(const std::filesystem::path& p, size_t max) {
@@ -238,17 +251,21 @@ Result Draw(int& sel, float scale) {
     ImDrawList* dl = ImGui::GetBackgroundDrawList();
     dl->AddRectFilled(ImVec2(0, 0), io.DisplaySize, kBackdrop);
 
-    // input: keyboard and the controller's d-pad / sticks through ImGui's navigation keys
-    auto pressed = [](ImGuiKey a, ImGuiKey b, ImGuiKey c) {
-        return ImGui::IsKeyPressed(a) || ImGui::IsKeyPressed(b) || ImGui::IsKeyPressed(c);
+    // input: keyboard and the controller's d-pad / sticks through ImGui's navigation keys; none for a few frames
+    // after the file dialog
+    bool input = g_input_cooldown == 0;
+    if (g_input_cooldown > 0) g_input_cooldown--;
+    auto pressed = [input](ImGuiKey a, ImGuiKey b, ImGuiKey c) {
+        return input && (ImGui::IsKeyPressed(a, false) || ImGui::IsKeyPressed(b, false) || ImGui::IsKeyPressed(c, false));
     };
     if (pressed(ImGuiKey_UpArrow, ImGuiKey_GamepadDpadUp, ImGuiKey_GamepadLStickUp)) sel = (sel + kRows - 1) % kRows;
     if (pressed(ImGuiKey_DownArrow, ImGuiKey_GamepadDpadDown, ImGuiKey_GamepadLStickDown)) sel = (sel + 1) % kRows;
     if (HasOption(sel) && pressed(ImGuiKey_LeftArrow, ImGuiKey_GamepadDpadLeft, ImGuiKey_GamepadLStickLeft)) Change(sel, -1);
     if (HasOption(sel) && pressed(ImGuiKey_RightArrow, ImGuiKey_GamepadDpadRight, ImGuiKey_GamepadLStickRight)) Change(sel, 1);
     bool accept = pressed(ImGuiKey_Enter, ImGuiKey_KeypadEnter, ImGuiKey_GamepadFaceDown) ||
-                  ImGui::IsKeyPressed(ImGuiKey_Space);
-    if (ImGui::IsKeyPressed(ImGuiKey_Escape) || ImGui::IsKeyPressed(ImGuiKey_GamepadFaceRight)) return Result::Quit;
+                  (input && ImGui::IsKeyPressed(ImGuiKey_Space, false));
+    if (input && (ImGui::IsKeyPressed(ImGuiKey_Escape, false) || ImGui::IsKeyPressed(ImGuiKey_GamepadFaceRight, false)))
+        return Result::Quit;
 
     float fs = ImGui::GetFontSize();
     float row_h = fs * 1.9f, pad = fs * 1.6f;
@@ -271,7 +288,7 @@ Result Draw(int& sel, float scale) {
     Result result = Result::Pending;
     for (int r = 0; r < kRows; r++) {
         ImVec2 a(p0.x + pad * 0.5f, p0.y + title_h + r * row_h), b(p1.x - pad * 0.5f, a.y + row_h);
-        bool hover = ImGui::IsMouseHoveringRect(a, b);
+        bool hover = input && ImGui::IsMouseHoveringRect(a, b);
         if (hover && (io.MouseDelta.x != 0 || io.MouseDelta.y != 0)) sel = r;
         if (r == sel) dl->AddRectFilled(a, b, kHighlight, fs * 0.25f);
         float ty = a.y + (row_h - fs) / 2;
@@ -294,7 +311,7 @@ Result Draw(int& sel, float scale) {
     if (accept) {
         if (sel == kStart && !GameReady()) sel = kGame;
         else if (sel == kStart) result = Result::Start;
-        else if (sel == kGame) BrowseGame();
+        else if (sel == kGame && BrowseGame() && GameReady()) sel = kStart;  // next Enter starts the game
         else if (sel == kQuit) result = Result::Quit;
         else Change(sel, 1);
     }
