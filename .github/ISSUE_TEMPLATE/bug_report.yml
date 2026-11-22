@@ -1,0 +1,82 @@
+name: Bug report
+description: Something doesn't work, crashes, freezes, looks wrong or sounds wrong.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! Please search [existing issues](https://github.com/nacholuver1/Crimson-Skies-High-Road-To-Revenge-Repo/issues?q=is%3Aissue) first.
+        **Never upload or link game files, disc images, the `assets` folder or `CrimsonSkies.dll`.**
+
+  - type: checkboxes
+    id: own-copy
+    attributes:
+      label: Your copy of the game
+      options:
+        - label: "I'm using my own dump of the Crimson Skies: High Road to Revenge disc for the original Xbox (USA retail release) in the assets folder."
+          required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Release version
+      description: From the download's file name, e.g. 1.0.0. Say so if you built it from source (and which commit).
+      placeholder: "1.0.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - Windows 11
+        - Windows 10
+        - Linux (Proton / Wine)
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: gpu
+    attributes:
+      label: GPU and driver version
+      placeholder: "NVIDIA RTX 4070, driver 596.36"
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What you saw or heard, and what you expected instead. Screenshots or a short video help a lot.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: How to make it happen
+      description: Where in the game (menu, mission, aircraft, turret) and the steps. Does it happen every time?
+      placeholder: |
+        1. Start the campaign
+        2. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: settings
+    attributes:
+      label: Settings
+      description: Paste your `settings.toml` (next to CrimsonSkies.exe). Frame rate, render resolution and FXAA matter most.
+      render: toml
+
+  - type: textarea
+    id: log
+    attributes:
+      label: Log file
+      description: |
+        Drag in the newest file from `logs\` in the game's folder. If it crashed, also attach the newest file from `CrashDumps\`.
+        If it froze, please say so: leaving it frozen and running with `XBE_LOG=1` set gives a longer log.
+    validations:
+      required: true

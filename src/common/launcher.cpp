@@ -14,8 +14,11 @@
 #endif
 #include <windows.h>
 
+#include <commdlg.h>
+
 #include <algorithm>
 #include <cstdio>
+#include <filesystem>
 #include <string>
 #include <vector>
 
@@ -59,7 +62,7 @@ const Choice kAniso[] = {{0, "Game default"}, {2, "2x"}, {4, "4x"}, {8, "8x"}, {
 const Choice kFps[] = {{30, "30 (original)"}, {60, "60"}, {120, "120"}, {144, "144"}, {165, "165"}, {240, "240"}};
 const Choice kAudio[] = {{0, "Automatic"}, {1, "Stereo"}, {2, "5.1 surround"}, {3, "Mono"}};
 
-enum Row { kStart, kDisplayMode, kResolution, kRenderRes, kAntiAlias, kFiltering, kVideoUpscale, kVsync, kFrameRate, kFpsCounter,
+enum Row { kStart, kGame, kDisplayMode, kResolution, kRenderRes, kAntiAlias, kFiltering, kVideoUpscale, kVsync, kFrameRate, kFpsCounter,
            kAudioOut, kLauncherAtStart, kQuit, kRows };
 
 template <size_t N>
@@ -73,6 +76,53 @@ uint32_t Step(const Choice (&c)[N], uint32_t v, int d) {
     return c[(IndexOf(c, v) + d + int(N)) % int(N)].value;
 }
 
+HWND g_hwnd = nullptr;
+
+// a path as UTF-8 in a std::string (C++20's u8string is std::u8string)
+std::string Utf8(const std::filesystem::path& p) {
+    std::u8string u = p.u8string();
+    return std::string(reinterpret_cast<const char*>(u.data()), u.size());
+}
+
+// the game the launcher found: game_path, else the assets folder; probed once per change
+struct GameState {
+    std::filesystem::path path;
+    app::GameProbe probe = app::GameProbe::Missing;
+    bool probed = false;
+} g_game;
+
+void ProbeGame() {
+    const app::Settings& s = app::Get();
+    g_game.path = s.game_path.empty() ? app::DefaultGamePath() : std::filesystem::u8path(s.game_path);
+    g_game.probe = g_game.path.empty() ? app::GameProbe::Missing : app::ProbeGame(g_game.path);
+    g_game.probed = true;
+}
+
+bool GameReady() { return g_game.probe != app::GameProbe::Missing; }
+
+// a file dialog for the disc image or the extracted game's default.xbe
+void BrowseGame() {
+    wchar_t file[MAX_PATH] = {};
+    OPENFILENAMEW of{sizeof(of)};
+    of.hwndOwner = g_hwnd;
+    of.lpstrFilter = L"Crimson Skies disc image or default.xbe\0*.iso;default.xbe\0Disc image (*.iso)\0*.iso\0All files\0*.*\0";
+    of.lpstrFile = file;
+    of.nMaxFile = MAX_PATH;
+    of.lpstrTitle = L"Choose your Crimson Skies: High Road to Revenge disc image (.iso) or default.xbe";
+    of.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST | OFN_NOCHANGEDIR;
+    if (!GetOpenFileNameW(&of)) return;
+    std::filesystem::path chosen(file);
+    if (chosen.filename() == L"default.xbe") chosen = chosen.parent_path();  // an extracted game: its folder
+    app::Get().game_path = Utf8(chosen);
+    app::Save();
+    ProbeGame();
+}
+
+std::string ShortPath(const std::filesystem::path& p, size_t max) {
+    std::string s = Utf8(p);
+    return s.size() <= max ? s : "..." + s.substr(s.size() - (max - 3));
+}
+
 int ResolutionIndex(const app::Settings& s) {
     for (size_t i = 0; i < std::size(kResolutions); i++)
         if (kResolutions[i][0] == s.width && kResolutions[i][1] == s.height) return int(i);
@@ -82,6 +132,7 @@ int ResolutionIndex(const app::Settings& s) {
 const char* Label(int row) {
     switch (row) {
         case kStart: return "START GAME";
+        case kGame: return "Game";
         case kDisplayMode: return "Display mode";
         case kResolution: return "Resolution";
         case kRenderRes: return "Render resolution";
@@ -100,7 +151,15 @@ const char* Label(int row) {
 
 const char* Note(int row) {
     switch (row) {
-        case kStart: return "Start Crimson Skies: High Road to Revenge with these settings.";
+        case kStart:
+            return GameReady() ? "Start Crimson Skies: High Road to Revenge with these settings."
+                               : "Choose your game first: the Game row below.";
+        case kGame:
+            switch (g_game.probe) {
+                case app::GameProbe::Match: return "Your disc image or game folder. Enter or a click picks another.";
+                case app::GameProbe::OtherRelease: return "A different release than this build was made for: it may crash. Enter to pick another.";
+                default: return "Enter or a click: pick your disc image (.iso) or the extracted game's default.xbe.";
+            }
         case kDisplayMode: return "Borderless fullscreen, exclusive fullscreen or a window.";
         case kResolution: return "The window's size. Desktop follows your screen.";
         case kRenderRes: return "Of the output height. Above 100% renders bigger and scales down: smooth edges, more GPU.";
@@ -121,6 +180,9 @@ std::string Value(int row) {
     const app::Settings& s = app::Get();
     char b[64];
     switch (row) {
+        case kGame:
+            if (g_game.probe == app::GameProbe::Missing) return "Not found - choose...";
+            return ShortPath(g_game.path, 44) + (g_game.probe == app::GameProbe::Match ? "" : "  (other release)");
         case kDisplayMode: return kDisplay[IndexOf(kDisplay, uint32_t(s.display_mode))].label;
         case kResolution: {
             int i = ResolutionIndex(s);
@@ -166,7 +228,7 @@ void Change(int row, int d) {
     app::Save();
 }
 
-bool HasOption(int row) { return row != kStart && row != kQuit; }
+bool HasOption(int row) { return row != kStart && row != kGame && row != kQuit; }
 
 enum class Result { Pending, Start, Quit };
 
@@ -191,7 +253,8 @@ Result Draw(int& sel, float scale) {
     float fs = ImGui::GetFontSize();
     float row_h = fs * 1.9f, pad = fs * 1.6f;
     float label_w = ImGui::CalcTextSize("Launcher at startup").x + fs * 3;
-    float value_w = ImGui::CalcTextSize("< 200% (2x supersampling) >").x + fs;
+    float value_w = std::max(ImGui::CalcTextSize("< 200% (2x supersampling) >").x,
+                             ImGui::CalcTextSize("...ssssssssssssssssssssssssssssssssssssssssss  (other release)").x) + fs;
     const char* kHint = "Up/Down choose  -  Left/Right change  -  Enter/A start  -  Esc/B quit";
     float text_w = ImGui::CalcTextSize(kHint).x;
     for (int r = 0; r < kRows; r++) text_w = std::max(text_w, ImGui::CalcTextSize(Note(r)).x);
@@ -212,13 +275,14 @@ Result Draw(int& sel, float scale) {
         if (hover && (io.MouseDelta.x != 0 || io.MouseDelta.y != 0)) sel = r;
         if (r == sel) dl->AddRectFilled(a, b, kHighlight, fs * 0.25f);
         float ty = a.y + (row_h - fs) / 2;
-        bool action = r == kStart || r == kQuit;
-        ImU32 col = r == kStart ? kAccent : r == sel ? kWhite : kGrey;
+        bool action = r == kStart || r == kGame || r == kQuit;
+        ImU32 col = r == kStart ? (GameReady() ? kAccent : kGrey) : r == sel ? kWhite : kGrey;
         dl->AddText(ImVec2(p0.x + pad, ty), r == kStart && r == sel ? kWhite : col, Label(r));
-        if (HasOption(r)) {
-            std::string v = r == sel ? "<  " + Value(r) + "  >" : Value(r);
+        if (HasOption(r) || r == kGame) {
+            std::string v = r == sel && r != kGame ? "<  " + Value(r) + "  >" : Value(r);
             float vw = ImGui::CalcTextSize(v.c_str()).x;
-            dl->AddText(ImVec2(p1.x - pad - vw, ty), r == sel ? kWhite : kGrey, v.c_str());
+            ImU32 vc = r == kGame && g_game.probe != app::GameProbe::Match ? kAccent : r == sel ? kWhite : kGrey;
+            dl->AddText(ImVec2(p1.x - pad - vw, ty), vc, v.c_str());
         }
         if (hover && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
             sel = r;
@@ -228,7 +292,9 @@ Result Draw(int& sel, float scale) {
         if (hover && ImGui::IsMouseClicked(ImGuiMouseButton_Right) && HasOption(r)) Change(r, -1);
     }
     if (accept) {
-        if (sel == kStart) result = Result::Start;
+        if (sel == kStart && !GameReady()) sel = kGame;
+        else if (sel == kStart) result = Result::Start;
+        else if (sel == kGame) BrowseGame();
         else if (sel == kQuit) result = Result::Quit;
         else Change(sel, 1);
     }
@@ -307,6 +373,7 @@ bool Run() {
     sc->GetBuffer(0, IID_PPV_ARGS(&bb));
     dev->CreateRenderTargetView(bb, nullptr, &rtv);
     bb->Release();
+    g_hwnd = hwnd;
     ShowWindow(hwnd, SW_SHOWDEFAULT);
     UpdateWindow(hwnd);
     SetForegroundWindow(hwnd);
@@ -323,7 +390,8 @@ bool Run() {
     ImGui_ImplWin32_Init(hwnd);
     ImGui_ImplDX11_Init(dev, dc);
 
-    int sel = kStart;
+    ProbeGame();
+    int sel = GameReady() ? kStart : kGame;
     Result result = Result::Pending;
     g_closed = false;
     while (result == Result::Pending) {

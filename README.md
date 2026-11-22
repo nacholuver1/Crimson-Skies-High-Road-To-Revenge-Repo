@@ -1,50 +1,38 @@
 # Crimson Skies: High Road to Revenge — native PC recompilation
 
-An unofficial native PC port of **Crimson Skies: High Road to Revenge** (original Xbox, 2003),
-made by *static recompilation*: the game's code is translated ahead of time into a normal
-x64 program, with a reimplemented Xbox kernel, GPU, audio and input layer underneath.
+An unofficial native Windows port of **Crimson Skies: High Road to Revenge** (original Xbox, 2003), made by
+*static recompilation* with [Xbox XBE Recomp](https://github.com/TGP482/XboxXBERecomp): the game's x86 code is
+translated ahead of time into a normal x64 program, with the Xbox kernel, Direct3D 8, DirectSound and input
+reimplemented on Windows underneath. No emulator runs at play time.
 
-**Status: playable, being tested.** The retail `default.xbe` builds and runs the campaign with sound and saves, at
-30 to 240 fps. Known issue: the main menu's **Demos** (Microsoft's demo launcher, `cdx.xbe`) is not recompiled and
-freezes the game.
+> **AI-assisted project.** The code, build scripts, debugging and documentation in this repository are written by
+> [Claude](https://claude.com/claude-code) (Anthropic's AI, via Claude Code), directed and play-tested by
+> [nacholuver1](https://github.com/nacholuver1). Every commit carries a `Co-Authored-By: Claude` trailer. Treat it
+> like any community project: read the code, and report problems in Issues.
 
-**This repository contains no game data.** No disc image, no game files, and none of the
-code generated from the game's executable. To play, you will need your own copy of the game.
+**This repository contains no game data.** No disc image, no game files, and none of the code translated from the
+game's executable: a release translates the game's code on the player's own PC, from their own copy.
 
-> **AI-assisted project.** The code, build scripts, debugging and documentation in this
-> repository are written by [Claude](https://claude.com/claude-code) (Anthropic's AI, via
-> Claude Code), directed and play-tested by [nacholuver1](https://github.com/nacholuver1).
-> Every commit carries a `Co-Authored-By: Claude` trailer.
+**Status: playable.** The campaign runs with sound and saves, at 30 to 240 fps. Known issue: the main menu's
+**Demos** (Microsoft's demo launcher, `cdx.xbe`) is not translated and stops the game.
 
-## Target build
+## Playing
 
-The working dump is the **USA beta of 2003-12-09** (En, Fr, De, Zh, Ko). Addresses, hooks and
-the setup-screen hash will be tied to that exact `default.xbe`; the retail release would need
-its own.
+1. Download the latest `-win64.zip` from [Releases](../../releases) and unzip it anywhere. It is portable.
+2. Run `CrimsonSkies.exe`. The launcher opens: on its **Game** row, pick your own **Crimson Skies: High Road to
+   Revenge** disc image (original Xbox, USA retail; `.iso`, a whole dump or an xiso) or the extracted game's
+   `default.xbe`, wherever it is. (Or put the `.iso` or the extracted files in the `assets` folder.)
+3. Pick your settings and press **START GAME**.
+4. The first start translates the game's code for your PC behind a progress window (a few minutes, about 1
+   on an 8-core CPU; once). Later starts take a few seconds.
 
-## How this differs from the Blitz recomps
-
-[Blitz-TheLeague-Recomp](https://github.com/nacholuver1/Blitz-TheLeague-Recomp) targeted the
-Xbox 360 (PowerPC, `default.xex`) with the ReXGlue SDK. The original Xbox is a different
-machine, and ReXGlue does not apply:
-
-| | Xbox 360 (Blitz) | Original Xbox (this game) |
-|---|---|---|
-| CPU | PowerPC Xenon, big-endian | Intel Pentium III (x86-32), little-endian |
-| Executable | `default.xex` | `default.xbe` |
-| GPU | ATI Xenos | NVIDIA NV2A (GeForce 3 class) |
-| Kernel | xboxkrnl (360) | xboxkrnl (original, ~366 exports) |
-| Game code links | XDK libraries | XDK libraries statically linked (D3D8, DSound, XAPI) |
-
-The toolchain is [XboxXBERecomp](https://github.com/TGP482/XboxXBERecomp) (x86 to C++, Xbox kernel and XDK
-libraries on the host, Direct3D 12 and XAudio2), with the XDK 5659 signatures of
-[TGP482/XboxXBERecomp#27](https://github.com/TGP482/XboxXBERecomp/pull/27). See [docs/PLAN.md](docs/PLAN.md)
-and [docs/RESEARCH.md](docs/RESEARCH.md) for the plan, the fork's fixes and what other projects contributed.
+Needs Windows 10 or 11, 64-bit, and a Direct3D 12 GPU. Linux: there is no native build (the SDK targets Windows);
+Proton or Wine may work but is untested, and reports are welcome. The player guide is [release/README.txt](release/README.txt).
 
 ## Settings
 
-A launcher opens before the game: display mode, resolution, render resolution (up to 300%, supersampling above
-100%), FXAA, texture filtering, video upscaling, vsync, frame rate, FPS counter and audio output. Every choice is saved in
+The launcher sets display mode, resolution, render resolution (up to 300%, supersampling above 100%), FXAA,
+texture filtering, video upscaling, vsync, frame rate, FPS counter and audio output. Every choice is saved in
 `settings.toml` beside the executable:
 
 | Key | Values |
@@ -55,31 +43,61 @@ A launcher opens before the game: display mode, resolution, render resolution (u
 | `upscale_videos` | cutscenes and stills: bicubic upscaling and deinterlacing (on by default) |
 | `render_percent` | of the output height; above 100 renders bigger and averages down |
 | `anisotropic_filtering` | 0 (as the game asks), 2, 4, 8, 16 |
+| `display_mode`, `width`, `height`, `vsync`, `audio_output` | the SDK's display and audio settings |
+| `game_path` | the game: a disc image (`.iso`) or the extracted game's folder; empty uses `assets` |
 | `launcher` | false starts the game directly |
 
 Command line: `--no-launcher` skips the launcher once, `--launcher` shows it even when it is turned off.
 
-The frame rate unlock follows crazyriddler's frame rate patches for this game in xbased: the game's own frame gate
-gets the new period, and the milliseconds its clock drops each frame are carried into the next
-(`src/common/frame_rate.cpp`). The launcher's look and behaviour follow the Blitz recomps' launcher, itself adapted
-from [darkuni's recomp menus](https://github.com/darkuni/outrun-arcade-recomp) (MIT).
+## Building from source
 
-## Tools
+Requirements (Windows x64): Visual Studio 2022 with **Desktop development with C++**, **C++ Clang tools for
+Windows** and **C++ CMake tools for Windows** (`build.bat` offers to add the last two), Git, Python 3 for the
+tools, and your own disc.
 
-```bash
-# List / extract the disc (plain xiso or full redump image)
-python3 tools/extract_xiso.py "path/to/your.iso" game --list
-python3 tools/extract_xiso.py "path/to/your.iso" game
-
-# Title ID, sections, entry point and XDK library versions of the game executable
-python3 tools/xbe_info.py game/default.xbe --sha256
+```bat
+git clone --recursive https://github.com/nacholuver1/Crimson-Skies-High-Road-To-Revenge-Repo.git
+cd Crimson-Skies-High-Road-To-Revenge-Repo
+python tools\extract_xiso.py "path\to\your.iso" assets
+build.bat
 ```
 
-Keep the disc image and the extracted `game/` folder on your own machine; `.gitignore` keeps
-them out of the repository.
+`build.bat` translates the game (about 15 minutes on 8 cores) and writes `out\build\release\CrimsonSkies.exe`.
+`powershell -ExecutionPolicy Bypass -File tools\make_release.ps1 -Version 1.0.0` packs the player download into
+`dist\`, without any game data or translated code.
+
+`sdk/` is a submodule on [nacholuver1/XboxXBERecomp](https://github.com/nacholuver1/XboxXBERecomp), branch
+`crimson-skies`: upstream plus the fixes this game needed (see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)).
+
+## Target build
+
+The retail USA `default.xbe`: title `0x4D530021`, built 2003-09-21, SHA-256
+`f923b28f390d0c036cdc7cf3a2d9becd7d9b2e61314a6c7b3278116bc25b98ba`. Other releases and the 2003-12-09 beta have other
+addresses and won't run with this config.
+
+## How it was made
+
+[docs/PLAN.md](docs/PLAN.md) is the plan (the recomp SOP translated from the Xbox 360 to the original Xbox), and
+[docs/RESEARCH.md](docs/RESEARCH.md) records every bug found on the way, its cause, its fix and the outside
+sources. Tools in `tools/`: `extract_xiso.py` (disc images), `xbe_info.py` (executable headers),
+`guest_locks.ps1` (critical-section owners of a frozen game).
+
+## Credits
+
+- [Xbox XBE Recomp](https://github.com/TGP482/XboxXBERecomp) by TGP482, the recompiler and runtime, with fixes from
+  its open pull requests by maxscipio (XDK 5659 signatures, read from this game), paulohenriquesn and
+  yacineolivier-maker.
+- crazyriddler's frame rate patches for this game in xbased, which the frame rate unlock follows.
+- xemu issue [#2902](https://github.com/xemu-project/xemu/issues/2902) and abaire's fix, which diagnosed the menu
+  text; the earlier recomps of this game by saironbusatto and sp00nznet, whose notes were checked against this one.
+- [darkuni's recomp menus](https://github.com/darkuni/outrun-arcade-recomp) (MIT), by way of the Blitz recomps,
+  for the launcher's design.
+- Built by Claude (Anthropic) with Claude Code, directed and play-tested by nacholuver1.
+
+Full notices: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 ## Legal
 
-This project's own code is MIT licensed ([LICENSE](LICENSE)). Crimson Skies and its code,
-assets and trademarks belong to their owners; this project is not affiliated with or endorsed
-by them. Use it only with a copy of the game you own.
+This project's own code is MIT licensed ([LICENSE](LICENSE)). Crimson Skies and its code, assets and trademarks
+belong to Microsoft; this project is not affiliated with or endorsed by Microsoft. Use it only with a copy of the
+game you own.
