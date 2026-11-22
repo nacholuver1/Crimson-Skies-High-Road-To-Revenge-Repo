@@ -3,6 +3,7 @@
 #include "fps_overlay.h"
 #include "frame_rate.h"
 #include "launcher.h"
+#include "widescreen.h"
 
 #include <cstdlib>
 
@@ -28,7 +29,8 @@ const app::GameInfo app::kGame = {
                 {"game_fps", nullptr, &frame_rate::g_fps},    // 30 (original) to 240
                 {"launcher", &launcher::g_show, nullptr},     // the pre-game launcher
                 {"impulse_triggers", &feedback::g_triggers, nullptr},  // trigger motors follow the game's rumble
-                {"crash_rumble", &feedback::g_crash, nullptr}},        // collisions held and faded
+                {"crash_rumble", &feedback::g_crash, nullptr},         // collisions held and faded
+                {"fov", nullptr, &widescreen::g_fov}},                 // field of view, percent of the original
     .load = nullptr,                      // reads more from the settings file's toml::table
     .save = nullptr,                      // writes more into it
     .init = Startup,                      // after the settings load, before the window and boot

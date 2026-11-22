@@ -8,6 +8,7 @@
 // keyboard, mouse or controller. Drawn with Dear ImGui on Direct3D 11 in a window of its own, gone before the game's
 // opens. The device and window setup follow Dear ImGui's example_win32_directx11 (MIT License).
 #include "launcher.h"
+#include "widescreen.h"
 
 #ifndef NOMINMAX
 #define NOMINMAX
@@ -61,9 +62,10 @@ const Choice kRender[] = {{50, "50%"},  {75, "75%"},   {100, "100% (native)"}, {
                           {200, "200% (2x supersampling)"}, {300, "300% (3x supersampling)"}};
 const Choice kAniso[] = {{0, "Game default"}, {2, "2x"}, {4, "4x"}, {8, "8x"}, {16, "16x"}};
 const Choice kFps[] = {{30, "30 (original)"}, {60, "60"}, {120, "120"}, {144, "144"}, {165, "165"}, {240, "240"}};
+const Choice kFovs[] = {{80, "80%"}, {90, "90%"}, {100, "100% (original)"}, {110, "110%"}, {120, "120%"}, {130, "130%"}};
 const Choice kAudio[] = {{0, "Automatic"}, {1, "Stereo"}, {2, "5.1 surround"}, {3, "Mono"}};
 
-enum Row { kStart, kGame, kDisplayMode, kResolution, kRenderRes, kAntiAlias, kFiltering, kVideoUpscale, kVsync, kFrameRate, kFpsCounter, kTriggers, kCrash,
+enum Row { kStart, kGame, kDisplayMode, kResolution, kRenderRes, kAntiAlias, kFiltering, kVideoUpscale, kVsync, kFrameRate, kFov, kFpsCounter, kTriggers, kCrash,
            kAudioOut, kLauncherAtStart, kQuit, kRows };
 
 template <size_t N>
@@ -155,6 +157,7 @@ const char* Label(int row) {
         case kVideoUpscale: return "Video upscaling";
         case kVsync: return "VSync";
         case kFrameRate: return "Frame rate";
+        case kFov: return "Field of view";
         case kFpsCounter: return "FPS counter";
         case kTriggers: return "Trigger rumble";
         case kCrash: return "Crash rumble";
@@ -184,6 +187,7 @@ const char* Note(int row) {
         case kVideoUpscale: return "Cutscenes and stills: bicubic upscaling and deinterlacing instead of a plain stretch.";
         case kVsync: return "Wait for the monitor's refresh. Off can tear.";
         case kFrameRate: return "The game was made for 30. Higher is smoother; set it to your monitor's refresh.";
+        case kFov: return "How much of the world you see. Wider can help with motion sickness.";
         case kFpsCounter: return "Frame rate in the corner. F2 shows or hides it in game.";
         case kTriggers: return "Xbox One / Series controllers: the triggers vibrate with the guns, afterburner and crashes.";
         case kCrash: return "Makes crashes a strong jolt; the game's own crash rumble is very short.";
@@ -215,6 +219,7 @@ std::string Value(int row) {
         case kVideoUpscale: return s.upscale_videos ? "On" : "Off";
         case kVsync: return s.vsync ? "On" : "Off";
         case kFrameRate: return kFps[IndexOf(kFps, frame_rate::Fps())].label;
+        case kFov: return kFovs[IndexOf(kFovs, widescreen::Fov())].label;
         case kFpsCounter: return fps_overlay::g_show ? "On" : "Off";
         case kTriggers: return feedback::g_triggers ? "On" : "Off";
         case kCrash: return feedback::g_crash ? "Stronger" : "Original";
@@ -240,6 +245,7 @@ void Change(int row, int d) {
         case kVideoUpscale: s.upscale_videos = !s.upscale_videos; break;
         case kVsync: s.vsync = !s.vsync; break;
         case kFrameRate: frame_rate::g_fps = Step(kFps, frame_rate::Fps(), d); break;
+        case kFov: widescreen::g_fov = Step(kFovs, widescreen::Fov(), d); break;
         case kFpsCounter: fps_overlay::g_show = !fps_overlay::g_show; break;
         case kTriggers: feedback::g_triggers = !feedback::g_triggers; break;
         case kCrash: feedback::g_crash = !feedback::g_crash; break;

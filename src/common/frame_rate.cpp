@@ -11,8 +11,17 @@
 // 0.94 of 6.94 ms (14% slower). Above 30 fps the hook before that call puts the fraction back into the gate's time
 // base (+0x10, in counter ticks at the frequency in +8), so it counts in the next frame.
 //
+// That keeps the game's clock right, but each frame still moves the world by whole milliseconds (0x3CFC0 sets the
+// frame time 0x3219BC = ms * 0.001): at 144 fps steps of 6 and 7 ms, at 240 of 4 and 5 (a 20% longer step every few
+// frames), uneven motion at high frame rates. Above 30 fps the hook at 0x3D044 gives it the
+// frame's exact time instead.
+//
+// One spinning part (0x16B17A) turns by its speed times the constant 1/30 each frame, so it spun faster with the
+// frame rate: the constant is set to the frame period too.
+//
 // Found by crazyriddler's frame rate patches for this game in xbased (tools/mods/crimsonskies_*fps*); written
 // here from their description, as hooks.
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <cstring>
@@ -33,9 +42,17 @@ void Init() {
 }  // namespace frame_rate
 
 // after "movss xmm0, [0x2C8368]" at 0x1308D9 and 0x130B23
-void FrameRate_Period(X86Context& ctx, uint8_t*) {
-    ctx.xmm[0].f[0] = 1.0f / float(frame_rate::Fps());
+void FrameRate_Period(X86Context& ctx, uint8_t* base) {
+    float period = 1.0f / float(frame_rate::Fps());
+    ctx.xmm[0].f[0] = period;
+    std::memcpy(base + 0x2C8368, &period, 4);
 }
+
+namespace {
+double g_carry = 0;      // the ms fraction the last frame moved into the next one
+double g_exact_ms = 0;   // this frame's exact time
+int32_t g_whole_ms = -1; // and what the gate truncates it to
+}  // namespace
 
 // before "call _ftol2" at 0x12FBCD: st0 = the frame's time in ms, esi = the gate's timer
 void FrameRate_CarryMs(X86Context& ctx, uint8_t* base) {
@@ -47,6 +64,22 @@ void FrameRate_CarryMs(X86Context& ctx, uint8_t* base) {
     std::memcpy(&freq, base + ctx.esi + 8, 8);
     std::memcpy(&time_base, base + ctx.esi + 0x10, 8);
     if (freq <= 0) return;
+    g_exact_ms = ms - g_carry;  // the time base was moved back by the last fraction: take it out again
+    g_whole_ms = int32_t(std::floor(ms));
+    g_carry = fraction;
     time_base -= int64_t(std::llround(fraction * double(freq) / 1000.0));
     std::memcpy(base + ctx.esi + 0x10, &time_base, 8);
+}
+
+// at 0x3D044 in 0x3CFC0: xmm0 = min(ms * 0.001, 0.5), about to become the frame time (0x3219BC) and be added to the
+// game time (0x3219C0); 0x3219AC = the whole ms the gate gave this frame (another value, such as the fixed 500 of a
+// paused game, is left alone)
+void FrameRate_Dt(X86Context& ctx, uint8_t* base) {
+    if (frame_rate::Fps() <= 30 || g_whole_ms < 0) return;
+    int32_t whole;
+    std::memcpy(&whole, base + 0x3219AC, 4);
+    if (whole != g_whole_ms || !(g_exact_ms > 0)) return;
+    float dt = float(std::min(g_exact_ms * 0.001, 0.5));
+    ctx.xmm[0].f[0] = dt;
+    std::memcpy(base + 0x3219B4, &dt, 4);
 }

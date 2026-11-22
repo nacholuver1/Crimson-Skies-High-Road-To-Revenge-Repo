@@ -301,3 +301,13 @@ after = true
 [[hook]]
 at = 0x12FBCD
 call = "FrameRate_CarryMs"
+
+# the world's frame time from the exact elapsed time instead of whole milliseconds (src/common/frame_rate.cpp)
+[[hook]]
+at = 0x3D044
+call = "FrameRate_Dt"
+
+# true 16:9 and the fov setting: the x and y scales the camera passes to 0x5DD10 (src/common/widescreen.cpp)
+[[hook]]
+at = 0x2D6DA
+call = "Widescreen_Scale"
