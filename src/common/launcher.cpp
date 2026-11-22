@@ -59,7 +59,7 @@ const Choice kAniso[] = {{0, "Game default"}, {2, "2x"}, {4, "4x"}, {8, "8x"}, {
 const Choice kFps[] = {{30, "30 (original)"}, {60, "60"}, {120, "120"}, {144, "144"}, {165, "165"}, {240, "240"}};
 const Choice kAudio[] = {{0, "Automatic"}, {1, "Stereo"}, {2, "5.1 surround"}, {3, "Mono"}};
 
-enum Row { kStart, kDisplayMode, kResolution, kRenderRes, kAntiAlias, kFiltering, kVsync, kFrameRate, kFpsCounter,
+enum Row { kStart, kDisplayMode, kResolution, kRenderRes, kAntiAlias, kFiltering, kVideoUpscale, kVsync, kFrameRate, kFpsCounter,
            kAudioOut, kLauncherAtStart, kQuit, kRows };
 
 template <size_t N>
@@ -87,6 +87,7 @@ const char* Label(int row) {
         case kRenderRes: return "Render resolution";
         case kAntiAlias: return "Anti-aliasing";
         case kFiltering: return "Texture filtering";
+        case kVideoUpscale: return "Video upscaling";
         case kVsync: return "VSync";
         case kFrameRate: return "Frame rate";
         case kFpsCounter: return "FPS counter";
@@ -105,6 +106,7 @@ const char* Note(int row) {
         case kRenderRes: return "Of the output height. Above 100% renders bigger and scales down: smooth edges, more GPU.";
         case kAntiAlias: return "FXAA smooths jagged edges for almost no cost. Pairs with supersampling.";
         case kFiltering: return "Anisotropic filtering: sharper textures at an angle, like the ground below you.";
+        case kVideoUpscale: return "Cutscenes and stills: bicubic upscaling and deinterlacing instead of a plain stretch.";
         case kVsync: return "Wait for the monitor's refresh. Off can tear.";
         case kFrameRate: return "The game was made for 30. Higher is smoother; set it to your monitor's refresh.";
         case kFpsCounter: return "Frame rate in the corner. F2 shows or hides it in game.";
@@ -130,6 +132,7 @@ std::string Value(int row) {
         case kRenderRes: return kRender[IndexOf(kRender, s.render_percent)].label;
         case kAntiAlias: return s.fxaa ? "FXAA" : "Off";
         case kFiltering: return kAniso[IndexOf(kAniso, s.aniso)].label;
+        case kVideoUpscale: return s.upscale_videos ? "On" : "Off";
         case kVsync: return s.vsync ? "On" : "Off";
         case kFrameRate: return kFps[IndexOf(kFps, frame_rate::Fps())].label;
         case kFpsCounter: return fps_overlay::g_show ? "On" : "Off";
@@ -152,6 +155,7 @@ void Change(int row, int d) {
         case kRenderRes: s.render_percent = Step(kRender, s.render_percent, d); break;
         case kAntiAlias: s.fxaa = !s.fxaa; break;
         case kFiltering: s.aniso = Step(kAniso, s.aniso, d); break;
+        case kVideoUpscale: s.upscale_videos = !s.upscale_videos; break;
         case kVsync: s.vsync = !s.vsync; break;
         case kFrameRate: frame_rate::g_fps = Step(kFps, frame_rate::Fps(), d); break;
         case kFpsCounter: fps_overlay::g_show = !fps_overlay::g_show; break;

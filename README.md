@@ -44,7 +44,7 @@ and [docs/RESEARCH.md](docs/RESEARCH.md) for the plan, the fork's fixes and what
 ## Settings
 
 A launcher opens before the game: display mode, resolution, render resolution (up to 300%, supersampling above
-100%), FXAA, texture filtering, vsync, frame rate, FPS counter and audio output. Every choice is saved in
+100%), FXAA, texture filtering, video upscaling, vsync, frame rate, FPS counter and audio output. Every choice is saved in
 `settings.toml` beside the executable:
 
 | Key | Values |
@@ -52,6 +52,7 @@ A launcher opens before the game: display mode, resolution, render resolution (u
 | `game_fps` | 30 (the original) to 240; 60 by default. The renderer's `fps_cap` is raised to match. |
 | `show_fps` | FPS counter in the corner; **F2** toggles it in game |
 | `fxaa` | FXAA on the final image |
+| `upscale_videos` | cutscenes and stills: bicubic upscaling and deinterlacing (on by default) |
 | `render_percent` | of the output height; above 100 renders bigger and averages down |
 | `anisotropic_filtering` | 0 (as the game asks), 2, 4, 8, 16 |
 | `launcher` | false starts the game directly |

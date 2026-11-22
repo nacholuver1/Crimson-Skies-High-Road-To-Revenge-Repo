@@ -259,6 +259,10 @@ now. Options: relaunch `default.xbe` instead, or recompile `cdx.xbe` and the Vin
 - Frame rate unlock: hooks at `0x1308D9` / `0x130B23` (the gate's period) and `0x12FBCD` (the ms carry). It was
   tested by play at 60 and 144 with no timing problems.
 - FXAA on the presented frame and box-filtered supersampling are in the fork. The launcher sets both.
+- Cutscenes: 120 Bink 1 files (`bink1\`, `bink2\`), all 640x480 at 29.97 fps, some with interlacing combs baked
+  in. No HD or AI upscales exist. The video draw is one pre-transformed quad (FVF 0x144, fixed function) sampling a
+  640x480 `LIN_X8R8G8B8` texture. The fork's `upscale_videos` samples such images with a bicubic filter after a
+  per-texel comb blend, which you judged better in mission cutscenes. In-engine cutscenes are 3D at full resolution.
 
 ## Loading-screen freeze: first analysis (2026-11-21)
 
