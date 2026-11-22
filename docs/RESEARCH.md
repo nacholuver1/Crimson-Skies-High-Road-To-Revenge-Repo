@@ -262,7 +262,7 @@ now. Options: relaunch `default.xbe` instead, or recompile `cdx.xbe` and the Vin
 - Cutscenes: 120 Bink 1 files (`bink1\`, `bink2\`), all 640x480 at 29.97 fps, some with interlacing combs baked
   in. No HD or AI upscales exist. The video draw is one pre-transformed quad (FVF 0x144, fixed function) sampling a
   640x480 `LIN_X8R8G8B8` texture. The fork's `upscale_videos` samples such images with a bicubic filter after a
-  per-texel comb blend, which you judged better in mission cutscenes. In-engine cutscenes are 3D at full resolution.
+  per-texel comb blend, which looked better in play testing of mission cutscenes. In-engine cutscenes are 3D at full resolution.
 
 ## Loading-screen freeze: first analysis (2026-11-21)
 
