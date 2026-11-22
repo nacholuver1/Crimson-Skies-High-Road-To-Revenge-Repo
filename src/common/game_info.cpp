@@ -1,4 +1,5 @@
 #include "app/app.h"
+#include "feedback.h"
 #include "fps_overlay.h"
 #include "frame_rate.h"
 #include "launcher.h"
@@ -25,7 +26,9 @@ const app::GameInfo app::kGame = {
     .images = {{"default.xbe", "CrimsonSkies"}},  // each recompiled xbe and its exe, for title launches
     .options = {{"show_fps", &fps_overlay::g_show, nullptr},  // F2 toggles it in game
                 {"game_fps", nullptr, &frame_rate::g_fps},    // 30 (original) to 240
-                {"launcher", &launcher::g_show, nullptr}},    // the pre-game launcher
+                {"launcher", &launcher::g_show, nullptr},     // the pre-game launcher
+                {"impulse_triggers", &feedback::g_triggers, nullptr},  // trigger motors follow the game's rumble
+                {"crash_rumble", &feedback::g_crash, nullptr}},        // collisions held and faded
     .load = nullptr,                      // reads more from the settings file's toml::table
     .save = nullptr,                      // writes more into it
     .init = Startup,                      // after the settings load, before the window and boot
@@ -33,6 +36,6 @@ const app::GameInfo app::kGame = {
     .window = nullptr,                    // the game window is up
     .message = fps_overlay::Message,      // window messages first; true takes one
     .ui = fps_overlay::Draw,              // ImGui drawing each frame
-    .pad = nullptr,                       // changes a polled pad
-    .rumble = nullptr,                    // changes a rumble before it is set
+    .pad = feedback::Pad,                 // changes a polled pad
+    .rumble = feedback::Rumble,           // changes a rumble before it is set
 };

@@ -15,7 +15,7 @@ under the SDK's license and carries:
   [#5](https://github.com/TGP482/XboxXBERecomp/pull/5) by yacineolivier-maker (Conker: Live & Reloaded port).
 - Fixes made for this game: setjmp continuations, empty directory masks, DirectSound position notifications and
   rolloff, texture refills between draws and texture-lock waits, the shadow sampler border in reversed depth,
-  critical sections on host state, FXAA, supersampling, video upscaling, a game_path setting and logging switches.
+  critical sections on host state, FXAA, supersampling, video upscaling, a game_path setting, trigger rumble and logging switches.
 
 The SDK's executables include these libraries (their licenses are in the release's `licenses` folder):
 

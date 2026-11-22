@@ -27,7 +27,8 @@ First run
 Controls
   Launcher        : arrows or D-pad to move, Left/Right to change, Enter or A to start, Esc or B to quit.
                     The mouse works too.
-  In game         : the game's own Xbox controls. Xbox, PlayStation and Switch controllers work through SDL.
+  In game         : the game's own Xbox controls (RT main guns, LT secondary, Y afterburner). Xbox,
+                    PlayStation and Switch controllers work through SDL, with the game's rumble.
                     F2 shows or hides the FPS counter.
 
 Settings (saved to settings.toml next to the program; the launcher writes it)
@@ -39,6 +40,10 @@ Settings (saved to settings.toml next to the program; the launcher writes it)
   Video upscaling             cutscenes and stills: bicubic upscaling and deinterlacing instead of a plain stretch
   Frame rate                  30 (the original) to 240. Set it to your monitor's refresh rate. The game's speed
                               stays right at any of them.
+  Trigger rumble              Xbox One / Series controllers: the right trigger vibrates with the main guns (RT),
+                              the left with the secondary weapon (LT), both lightly with the afterburner (Y) and
+                              with crashes
+  Crash rumble                Stronger makes crashes a real jolt (the game's own is very short)
   Launcher at startup         Off starts the game directly (launcher = true in settings.toml brings it back)
   Recommended: frame rate = your monitor's refresh, FXAA on, 16x filtering, video upscaling on; 150% or 200%
   render resolution if your GPU has room.

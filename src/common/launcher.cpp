@@ -30,6 +30,7 @@
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND, UINT, WPARAM, LPARAM);
 
 #include "app/app.h"
+#include "feedback.h"
 #include "fps_overlay.h"
 #include "frame_rate.h"
 
@@ -62,7 +63,7 @@ const Choice kAniso[] = {{0, "Game default"}, {2, "2x"}, {4, "4x"}, {8, "8x"}, {
 const Choice kFps[] = {{30, "30 (original)"}, {60, "60"}, {120, "120"}, {144, "144"}, {165, "165"}, {240, "240"}};
 const Choice kAudio[] = {{0, "Automatic"}, {1, "Stereo"}, {2, "5.1 surround"}, {3, "Mono"}};
 
-enum Row { kStart, kGame, kDisplayMode, kResolution, kRenderRes, kAntiAlias, kFiltering, kVideoUpscale, kVsync, kFrameRate, kFpsCounter,
+enum Row { kStart, kGame, kDisplayMode, kResolution, kRenderRes, kAntiAlias, kFiltering, kVideoUpscale, kVsync, kFrameRate, kFpsCounter, kTriggers, kCrash,
            kAudioOut, kLauncherAtStart, kQuit, kRows };
 
 template <size_t N>
@@ -155,6 +156,8 @@ const char* Label(int row) {
         case kVsync: return "VSync";
         case kFrameRate: return "Frame rate";
         case kFpsCounter: return "FPS counter";
+        case kTriggers: return "Trigger rumble";
+        case kCrash: return "Crash rumble";
         case kAudioOut: return "Audio output";
         case kLauncherAtStart: return "Launcher at startup";
         case kQuit: return "Quit";
@@ -182,6 +185,8 @@ const char* Note(int row) {
         case kVsync: return "Wait for the monitor's refresh. Off can tear.";
         case kFrameRate: return "The game was made for 30. Higher is smoother; set it to your monitor's refresh.";
         case kFpsCounter: return "Frame rate in the corner. F2 shows or hides it in game.";
+        case kTriggers: return "Xbox One / Series controllers: the triggers vibrate with the guns, afterburner and crashes.";
+        case kCrash: return "Makes crashes a strong jolt; the game's own crash rumble is very short.";
         case kAudioOut: return "Automatic follows your Windows speaker setup.";
         case kLauncherAtStart: return "Off starts the game directly. Back on: launcher = true in settings.toml.";
         case kQuit: return "Close without starting the game.";
@@ -211,6 +216,8 @@ std::string Value(int row) {
         case kVsync: return s.vsync ? "On" : "Off";
         case kFrameRate: return kFps[IndexOf(kFps, frame_rate::Fps())].label;
         case kFpsCounter: return fps_overlay::g_show ? "On" : "Off";
+        case kTriggers: return feedback::g_triggers ? "On" : "Off";
+        case kCrash: return feedback::g_crash ? "Stronger" : "Original";
         case kAudioOut: return kAudio[IndexOf(kAudio, s.audio_output)].label;
         case kLauncherAtStart: return g_show ? "On" : "Off";
     }
@@ -234,6 +241,8 @@ void Change(int row, int d) {
         case kVsync: s.vsync = !s.vsync; break;
         case kFrameRate: frame_rate::g_fps = Step(kFps, frame_rate::Fps(), d); break;
         case kFpsCounter: fps_overlay::g_show = !fps_overlay::g_show; break;
+        case kTriggers: feedback::g_triggers = !feedback::g_triggers; break;
+        case kCrash: feedback::g_crash = !feedback::g_crash; break;
         case kAudioOut: s.audio_output = Step(kAudio, s.audio_output, d); break;
         case kLauncherAtStart: g_show = !g_show; break;
         default: return;

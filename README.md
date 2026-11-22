@@ -32,7 +32,7 @@ Proton or Wine may work but is untested, and reports are welcome. The player gui
 ## Settings
 
 The launcher sets display mode, resolution, render resolution (up to 300%, supersampling above 100%), FXAA,
-texture filtering, video upscaling, vsync, frame rate, FPS counter and audio output. Every choice is saved in
+texture filtering, video upscaling, vsync, frame rate, FPS counter, trigger and crash rumble, and audio output. Every choice is saved in
 `settings.toml` beside the executable:
 
 | Key | Values |
@@ -45,6 +45,8 @@ texture filtering, video upscaling, vsync, frame rate, FPS counter and audio out
 | `anisotropic_filtering` | 0 (as the game asks), 2, 4, 8, 16 |
 | `display_mode`, `width`, `height`, `vsync`, `audio_output` | the SDK's display and audio settings |
 | `game_path` | the game: a disc image (`.iso`) or the extracted game's folder; empty uses `assets` |
+| `impulse_triggers` | Xbox One / Series trigger motors follow the guns, afterburner and crashes (on by default) |
+| `crash_rumble` | crashes held and faded into a strong jolt; false keeps the game's very short one (on by default) |
 | `launcher` | false starts the game directly |
 
 Command line: `--no-launcher` skips the launcher once, `--launcher` shows it even when it is turned off.
