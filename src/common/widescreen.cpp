@@ -23,7 +23,7 @@ uint32_t Fov() { return g_fov < 80 ? 80 : g_fov > 130 ? 130 : g_fov; }
 // before "call 0x5DD10" at 0x2D6DA: [esp] = the x scale (the push at 0x2D6D3), [esp+4] = the y scale
 void Widescreen_Scale(X86Context& ctx, uint8_t* base) {
     float zoom = 100.0f / float(widescreen::Fov());
-    float x = zoom * (app::Widescreen() ? (4.0f / 3.0f) / (16.0f / 9.0f) : 1.0f), y = zoom;
+    float x = zoom * (4.0f / 3.0f) / app::PresentAspect(), y = zoom;  // 0.75 at 16:9, 0.57 at 21:9
     std::memcpy(base + ctx.esp, &x, 4);
     std::memcpy(base + ctx.esp + 4, &y, 4);
 }

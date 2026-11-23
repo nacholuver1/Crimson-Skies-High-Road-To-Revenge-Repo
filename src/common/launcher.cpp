@@ -58,7 +58,8 @@ struct Choice {
 const Choice kDisplay[] = {{uint32_t(app::DisplayMode::Borderless), "Borderless"},
                            {uint32_t(app::DisplayMode::Fullscreen), "Fullscreen"},
                            {uint32_t(app::DisplayMode::Windowed), "Windowed"}};
-const uint32_t kResolutions[][2] = {{0, 0}, {1280, 720}, {1600, 900}, {1920, 1080}, {2560, 1440}, {3840, 2160}};
+const uint32_t kResolutions[][2] = {{0, 0},       {1280, 720},  {1600, 900},  {1920, 1080}, {2560, 1080},
+                                    {2560, 1440}, {3440, 1440}, {3840, 1600}, {3840, 2160}, {5120, 1440}};
 const Choice kRender[] = {{50, "50%"},  {75, "75%"},   {100, "100% (native)"}, {150, "150% (1.5x supersampling)"},
                           {200, "200% (2x supersampling)"}, {300, "300% (3x supersampling)"}};
 const Choice kAniso[] = {{0, "Game default"}, {2, "2x"}, {4, "4x"}, {8, "8x"}, {16, "16x"}};

@@ -13,8 +13,8 @@ reimplemented on Windows underneath. No emulator runs at play time.
 **This repository contains no game data.** No disc image, no game files, and none of the code translated from the
 game's executable: a release translates the game's code on the player's own PC, from their own copy.
 
-**Status: playable.** The campaign runs with sound and saves, at 30 to 240 fps, in true 16:9 on widescreen
-monitors. Known issues: the main menu's **Demos** (Microsoft's demo launcher, `cdx.xbe`) is not translated and
+**Status: playable.** The campaign runs with sound and saves, at 30 to 240 fps, in true widescreen (16:9 up
+to 32:9 ultrawide). Known issues: the main menu's **Demos** (Microsoft's demo launcher, `cdx.xbe`) is not translated and
 stops the game.
 
 ## Playing
@@ -40,7 +40,7 @@ texture filtering, video upscaling, vsync, frame rate, FPS counter, trigger and 
 |---|---|
 | `game_fps` | 30 (the original) to 240; 60 by default. The renderer's `fps_cap` is raised to match. |
 | `camera_sway` | the camera's turbulence sway in percent, 0 (off) to 100 (the original, default) |
-| `fov` | field of view in percent of the original, 80 to 130 (100 by default). On a widescreen output the 3D view is true 16:9. |
+| `fov` | field of view in percent of the original, 80 to 130 (100 by default). On a widescreen output the 3D view fills the monitor's shape, 16:9 up to 32:9. |
 | `show_fps` | FPS counter in the corner; **F2** toggles it in game |
 | `fxaa` | FXAA on the final image |
 | `upscale_videos` | cutscenes and stills: bicubic upscaling and deinterlacing (on by default) |
