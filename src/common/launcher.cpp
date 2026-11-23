@@ -69,10 +69,12 @@ const Choice kSways[] = {{0, "Off"}, {25, "25%"}, {50, "50%"}, {75, "75%"}, {100
 const Choice kDevices[] = {{0, "Auto"}, {1, "Controller"}, {2, "Keyboard and mouse"}};
 const Choice kMouseModes[] = {{0, "Off"}, {1, "Left stick (steer)"}, {2, "Right stick (roll, maneuvers)"}};
 const Choice kMice[] = {{50, "50%"}, {75, "75%"}, {100, "100%"}, {150, "150%"}, {200, "200%"}, {300, "300%"}};
+const Choice kLanguages[] = {{1, "English"}, {3, "German (text and voices)"}, {4, "French (text and voices)"},
+                             {7, "Korean (text)"}, {8, "Chinese, traditional (text)"}};
 const Choice kAudio[] = {{0, "Automatic"}, {1, "Stereo"}, {2, "5.1 surround"}, {3, "Mono"}};
 
 enum Row { kStart, kGame, kDisplayMode, kResolution, kRenderRes, kAntiAlias, kFiltering, kVideoUpscale, kVsync, kFrameRate, kFov, kSway, kFpsCounter, kDevice, kBindings, kMouseMode, kMouse, kMousePitch, kTriggers, kCrash,
-           kAudioOut, kLauncherAtStart, kQuit, kRows };
+           kAudioOut, kLanguage, kLauncherAtStart, kQuit, kRows };
 
 template <size_t N>
 int IndexOf(const Choice (&c)[N], uint32_t v) {
@@ -174,6 +176,7 @@ const char* Label(int row) {
         case kTriggers: return "Trigger rumble";
         case kCrash: return "Crash rumble";
         case kAudioOut: return "Audio output";
+        case kLanguage: return "Language";
         case kLauncherAtStart: return "Launcher at startup";
         case kQuit: return "Quit";
     }
@@ -210,6 +213,7 @@ const char* Note(int row) {
         case kTriggers: return "Xbox One / Series controllers: the triggers vibrate with the guns, afterburner and crashes.";
         case kCrash: return "Makes crashes a strong jolt; the game's own crash rumble is very short.";
         case kAudioOut: return "Automatic follows your Windows speaker setup.";
+        case kLanguage: return "The game's language. Korean and Chinese have English voices.";
         case kLauncherAtStart: return "Off starts the game directly. Back on: launcher = true in settings.toml.";
         case kQuit: return "Close without starting the game.";
     }
@@ -247,6 +251,7 @@ std::string Value(int row) {
         case kTriggers: return feedback::g_triggers ? "On" : "Off";
         case kCrash: return feedback::g_crash ? "Stronger" : "Original";
         case kAudioOut: return kAudio[IndexOf(kAudio, s.audio_output)].label;
+        case kLanguage: return kLanguages[IndexOf(kLanguages, s.language)].label;
         case kLauncherAtStart: return g_show ? "On" : "Off";
     }
     return "";
@@ -278,6 +283,7 @@ void Change(int row, int d) {
         case kTriggers: feedback::g_triggers = !feedback::g_triggers; break;
         case kCrash: feedback::g_crash = !feedback::g_crash; break;
         case kAudioOut: s.audio_output = Step(kAudio, s.audio_output, d); break;
+        case kLanguage: s.language = Step(kLanguages, s.language, d); break;
         case kLauncherAtStart: g_show = !g_show; break;
         default: return;
     }

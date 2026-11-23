@@ -55,6 +55,8 @@ Settings (saved to settings.toml next to the program; the launcher writes it)
                               the left with the secondary weapon (LT), both lightly with the afterburner (Y) and
                               with crashes
   Crash rumble                Stronger makes crashes a real jolt (the game's own is very short)
+  Language                    English, German or French (text and voices), Korean or Chinese (text,
+                              English voices)
   Launcher at startup         Off starts the game directly (launcher = true in settings.toml brings it back)
   Recommended: frame rate = your monitor's refresh, FXAA on, 16x filtering, video upscaling on; 150% or 200%
   render resolution if your GPU has room.

@@ -46,6 +46,7 @@ texture filtering, video upscaling, vsync, frame rate, FPS counter, trigger and 
 | `upscale_videos` | cutscenes and stills: bicubic upscaling and deinterlacing (on by default) |
 | `render_percent` | of the output height; above 100 renders bigger and averages down |
 | `anisotropic_filtering` | 0 (as the game asks), 2, 4, 8, 16 |
+| `language` | the console language the game sees: 1 English, 3 German, 4 French (text and voices), 7 Korean, 8 Chinese traditional (text) |
 | `display_mode`, `width`, `height`, `vsync`, `audio_output` | the SDK's display and audio settings |
 | `game_path` | the game: a disc image (`.iso`) or the extracted game's folder; empty uses `assets` |
 | `input_device` | 0 auto (keyboard, mouse and controller; the controller only vibrates when used last), 1 controller only, 2 keyboard and mouse (no controller rumble) |
