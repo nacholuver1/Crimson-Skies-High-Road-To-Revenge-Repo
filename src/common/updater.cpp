@@ -90,10 +90,22 @@ std::string JsonString(const std::string& json, const char* key, size_t pos = 0,
     if (p == std::string::npos) return {};
     p = json.find('"', p);
     if (p == std::string::npos) return {};
-    size_t e = json.find('"', p + 1);
-    if (e == std::string::npos) return {};
-    if (found) *found = p;
-    return json.substr(p + 1, e - p - 1);
+    // up to the closing quote, decoding the escapes GitHub's names and addresses can hold (\" \\ \/ \n \t)
+    std::string v;
+    for (size_t i = p + 1; i < json.size(); i++) {
+        char c = json[i];
+        if (c == '"') {
+            if (found) *found = p;
+            return v;
+        }
+        if (c == '\\' && i + 1 < json.size()) {
+            c = json[++i];
+            if (c == 'n') c = '\n';
+            else if (c == 't') c = '\t';
+        }
+        v += c;
+    }
+    return {};
 }
 
 // SHA-256 with Windows' CNG, fed as the download comes
@@ -281,13 +293,12 @@ void Install() {
             return;
         }
         std::string have = hash.Hex();
-        if (!sha.empty() && have != sha) {
+        if (sha.size() != 64 || have != sha) {
             fs::remove(zip, ec);
-            Fail("The download is damaged (checksum differs). Try again.");
+            Fail("The download is damaged (checksum differs).");
             return;
         }
-        LOGI("Update: downloaded %llu bytes, sha256 %s%s", (unsigned long long)got, have.c_str(),
-             sha.empty() ? " (GitHub listed no checksum)" : " (matches)");
+        LOGI("Update: downloaded %llu bytes, sha256 %s (matches)", (unsigned long long)got, have.c_str());
     }
 
     // 2. unpack with Windows' tar.exe
@@ -325,6 +336,10 @@ void Install() {
     std::vector<fs::path> files;
     for (auto& e : fs::recursive_directory_iterator(root, ec))
         if (e.is_regular_file()) files.push_back(e.path());
+    if (ec) {  // a partial list would leave a mix of versions
+        Fail("Could not read the unpacked files");
+        return;
+    }
     for (const fs::path& src : files) {
         fs::path rel = fs::relative(src, root, ec), target = exe / rel;
         // never the player's files, should a release ever carry them
@@ -353,7 +368,7 @@ void Install() {
         std::ofstream list(OldList(), std::ios::trunc);
         for (auto& [target, had] : done)
             if (had) {
-                fs::path old = target;
+                fs::path old = fs::relative(target, exe, ec);  // relative: the folder may be moved before the next start
                 old += L".old";
                 std::u8string u = old.u8string();
                 list << std::string(u.begin(), u.end()) << "\n";
@@ -376,16 +391,21 @@ void Cleanup() {
     std::vector<std::string> left;
     std::ifstream list(OldList());
     std::string line;
+    // the previous version may still be closing: tries for up to 3 seconds in all, then the next start goes on
+    ULONGLONG deadline = GetTickCount64() + 3000;
     while (std::getline(list, line)) {
         if (line.empty()) continue;
-        fs::path old = fs::path(std::u8string(line.begin(), line.end()));
-        // the previous version may still be closing: a few tries
-        bool gone = false;
-        for (int i = 0; i < 20 && !gone; i++) {
-            gone = DeleteFileW(old.c_str()) || GetLastError() == ERROR_FILE_NOT_FOUND;
-            if (!gone) Sleep(150);
+        fs::path old = app::ExeDir() / fs::path(std::u8string(line.begin(), line.end()));
+        for (;;) {
+            if (DeleteFileW(old.c_str())) break;
+            DWORD e = GetLastError();
+            if (e == ERROR_FILE_NOT_FOUND || e == ERROR_PATH_NOT_FOUND) break;
+            if (GetTickCount64() >= deadline) {
+                left.push_back(line);
+                break;
+            }
+            Sleep(100);
         }
-        if (!gone) left.push_back(line);
     }
     list.close();
     if (left.empty()) {

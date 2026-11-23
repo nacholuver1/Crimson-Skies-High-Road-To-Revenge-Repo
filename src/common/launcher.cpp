@@ -445,6 +445,11 @@ bool g_offered = false;  // the popup was shown for a found release
 bool g_popup = false;    // the update popup is open
 int g_popup_sel = 0;     // its button: 0 Update now, 1 Later
 
+bool Updating() {
+    updater::State st = updater::GetState();
+    return st == updater::State::Downloading || st == updater::State::Installing;
+}
+
 // Enter or a click on the Updates row: install what was found, else check now
 void UpdateAction() {
     updater::State st = updater::GetState();
@@ -723,6 +728,7 @@ Result Draw(int& sel, float scale) {
     }
     if (accept) {
         if (sel == kStart && !GameReady()) sel = kGame;
+        else if (sel == kStart && Updating()) sel = kUpdate;  // the update first: it may replace the compiler
         else if (sel == kStart) result = Result::Start;
         else if (sel == kGame && BrowseGame() && GameReady()) sel = kStart;  // next Enter starts the game
         else if (sel == kQuit) result = Result::Quit;
