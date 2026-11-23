@@ -9,6 +9,7 @@
 // opens. The device and window setup follow Dear ImGui's example_win32_directx11 (MIT License).
 #include "launcher.h"
 #include "kbm.h"
+#include "updater.h"
 #include "widescreen.h"
 
 #ifndef NOMINMAX
@@ -19,6 +20,8 @@
 #include <commdlg.h>
 
 #include <algorithm>
+#include <cfloat>
+#include <cmath>
 #include <cstdio>
 #include <filesystem>
 #include <string>
@@ -42,13 +45,118 @@ bool g_show = true;  // settings.toml launcher
 
 namespace {
 
-// colours: Crimson Skies red on near black
-const ImU32 kWhite = IM_COL32(255, 255, 255, 255);
-const ImU32 kGrey = IM_COL32(185, 175, 170, 255);
-const ImU32 kAccent = IM_COL32(222, 60, 40, 255);
-const ImU32 kPanel = IM_COL32(18, 10, 9, 238);
-const ImU32 kHighlight = IM_COL32(120, 28, 20, 235);
-const ImU32 kBackdrop = IM_COL32(8, 5, 5, 255);
+// colours: the game's 1930s pulp-aviation look, brass and cream on dark walnut under a crimson dusk
+const ImU32 kWhite = IM_COL32(246, 234, 206, 255);   // cream: the selected row
+const ImU32 kGrey = IM_COL32(184, 162, 128, 255);    // faded tan: the other rows
+const ImU32 kAccent = IM_COL32(236, 84, 56, 255);    // crimson: warnings, key capture
+const ImU32 kGold = IM_COL32(222, 178, 96, 255);     // brass: titles, borders
+const ImU32 kGoldDim = IM_COL32(150, 112, 58, 255);
+const ImU32 kHint = IM_COL32(132, 112, 88, 255);
+const ImU32 kShadow = IM_COL32(0, 0, 0, 170);
+
+ImFont* g_title_font = nullptr;  // Georgia Bold when Windows has it, else the default font
+
+// the backdrop: a dusk sky fading from crimson to near black, with art-deco sunburst rays rising from below
+void DrawBackdrop(ImDrawList* dl, ImVec2 size) {
+    ImU32 top = IM_COL32(58, 16, 12, 255), mid = IM_COL32(28, 12, 10, 255), bottom = IM_COL32(10, 7, 6, 255);
+    dl->AddRectFilledMultiColor(ImVec2(0, 0), ImVec2(size.x, size.y * 0.55f), top, top, mid, mid);
+    dl->AddRectFilledMultiColor(ImVec2(0, size.y * 0.55f), size, mid, mid, bottom, bottom);
+    ImVec2 c(size.x * 0.5f, size.y * 1.15f);
+    float r = std::max(size.x, size.y) * 1.6f;
+    const int kRays = 36;
+    for (int i = 0; i < kRays; i += 2) {
+        float a0 = 3.14159265f * (1.0f + float(i) / kRays), a1 = 3.14159265f * (1.0f + float(i + 1) / kRays);
+        dl->AddTriangleFilled(c, ImVec2(c.x + std::cos(a0) * r, c.y + std::sin(a0) * r),
+                              ImVec2(c.x + std::cos(a1) * r, c.y + std::sin(a1) * r), IM_COL32(255, 170, 90, 9));
+    }
+    // a vignette darkens the edges
+    float e = size.x * 0.18f;
+    ImU32 dark = IM_COL32(0, 0, 0, 150), clear = IM_COL32(0, 0, 0, 0);
+    dl->AddRectFilledMultiColor(ImVec2(0, 0), ImVec2(e, size.y), dark, clear, clear, dark);
+    dl->AddRectFilledMultiColor(ImVec2(size.x - e, 0), size, clear, dark, dark, clear);
+}
+
+// a panel: dark walnut, a double brass border with stepped art-deco corners
+void DrawPanel(ImDrawList* dl, ImVec2 p0, ImVec2 p1, float fs, float scale) {
+    float t = std::max(1.0f, scale);
+    dl->AddRectFilled(ImVec2(p0.x + fs * 0.4f, p0.y + fs * 0.5f), ImVec2(p1.x + fs * 0.4f, p1.y + fs * 0.5f),
+                      IM_COL32(0, 0, 0, 110));  // drop shadow
+    dl->AddRectFilledMultiColor(p0, p1, IM_COL32(40, 25, 18, 245), IM_COL32(40, 25, 18, 245),
+                                IM_COL32(20, 12, 9, 245), IM_COL32(20, 12, 9, 245));
+    dl->AddRect(p0, p1, kGold, 0, 0, t * 2);
+    float in = fs * 0.35f;
+    dl->AddRect(ImVec2(p0.x + in, p0.y + in), ImVec2(p1.x - in, p1.y - in), kGoldDim, 0, 0, t);
+    // stepped corners: three brass steps at each corner
+    float s = fs * 0.45f;
+    for (int corner = 0; corner < 4; corner++) {
+        float sx = corner & 1 ? -1.0f : 1.0f, sy = corner & 2 ? -1.0f : 1.0f;
+        ImVec2 o(corner & 1 ? p1.x - in : p0.x + in, corner & 2 ? p1.y - in : p0.y + in);
+        for (int k = 1; k <= 3; k++) {
+            ImVec2 pts[3] = {ImVec2(o.x + sx * s * k, o.y), ImVec2(o.x + sx * s * k, o.y + sy * s * (4 - k)),
+                             ImVec2(o.x, o.y + sy * s * (4 - k))};
+            dl->AddPolyline(pts, 3, k == 3 ? kGold : kGoldDim, 0, t);
+        }
+    }
+}
+
+// a brass rule with a diamond in the middle
+void DrawRule(ImDrawList* dl, float x0, float x1, float y, float fs, float scale) {
+    float t = std::max(1.0f, scale), m = (x0 + x1) / 2, d = fs * 0.28f;
+    dl->AddLine(ImVec2(x0, y), ImVec2(m - d * 2, y), kGoldDim, t);
+    dl->AddLine(ImVec2(m + d * 2, y), ImVec2(x1, y), kGoldDim, t);
+    dl->AddQuadFilled(ImVec2(m, y - d), ImVec2(m + d, y), ImVec2(m, y + d), ImVec2(m - d, y), kGold);
+}
+
+// the selected row: a crimson bar fading to the right, a brass edge on the left
+void DrawHighlight(ImDrawList* dl, ImVec2 a, ImVec2 b, float fs, float scale) {
+    ImU32 l = IM_COL32(150, 30, 22, 235), r = IM_COL32(70, 16, 12, 200);
+    dl->AddRectFilledMultiColor(a, b, l, r, r, l);
+    dl->AddRectFilled(a, ImVec2(a.x + std::max(2.0f, fs * 0.18f), b.y), kGold);
+    dl->AddLine(ImVec2(a.x, b.y - 1), ImVec2(b.x, b.y - 1), IM_COL32(222, 178, 96, 90), std::max(1.0f, scale));
+}
+
+// letter-spaced capitals, centred on x
+void DrawSpaced(ImDrawList* dl, ImFont* font, float size, float cx, float y, ImU32 col, const char* text, float gap) {
+    float w = 0;
+    for (const char* c = text; *c; c++) w += font->CalcTextSizeA(size, FLT_MAX, 0, c, c + 1).x + gap;
+    float x = cx - (w - gap) / 2;
+    for (const char* c = text; *c; c++) {
+        dl->AddText(font, size, ImVec2(x, y), col, c, c + 1);
+        x += font->CalcTextSizeA(size, FLT_MAX, 0, c, c + 1).x + gap;
+    }
+}
+
+// the title block: CRIMSON SKIES in brass on a crimson ribbon with deco wings, the subtitle below
+void DrawTitle(ImDrawList* dl, ImVec2 p0, ImVec2 p1, float fs, float scale, const char* title, const char* sub) {
+    ImFont* tf = g_title_font ? g_title_font : ImGui::GetFont();
+    float ts = fs * 1.9f, cx = (p0.x + p1.x) / 2, y = p0.y + fs * 1.0f;
+    float tw = 0;
+    for (const char* c = title; *c; c++) tw += tf->CalcTextSizeA(ts, FLT_MAX, 0, c, c + 1).x + fs * 0.25f;
+    float rh = ts * 1.2f, rw = tw / 2 + fs * 1.4f;
+    ImVec2 r0(cx - rw, y - ts * 0.1f), r1(cx + rw, y - ts * 0.1f + rh);
+    float notch = rh * 0.5f;
+    // the ribbon's tails with a notch, then its band
+    ImU32 deep = IM_COL32(96, 16, 12, 255), band = IM_COL32(150, 26, 20, 255);
+    for (int side = -1; side <= 1; side += 2) {
+        float x0 = side < 0 ? r0.x : r1.x, x1 = x0 + side * fs * 1.6f;
+        float top = r0.y + rh * 0.2f, bot = r1.y + rh * 0.2f, mid = (top + bot) / 2, xn = x1 - side * notch * 0.7f;
+        ImVec2 upper[4] = {ImVec2(x0, top), ImVec2(x1, top), ImVec2(xn, mid), ImVec2(x0, mid)};
+        ImVec2 lower[4] = {ImVec2(x0, mid), ImVec2(xn, mid), ImVec2(x1, bot), ImVec2(x0, bot)};
+        dl->AddConvexPolyFilled(upper, 4, deep);
+        dl->AddConvexPolyFilled(lower, 4, deep);
+        // the wings: three brass lines sweeping out from the ribbon
+        for (int k = 0; k < 3; k++) {
+            float wy = r0.y + rh * (0.35f + k * 0.15f), len = fs * (5.0f - k * 1.2f);
+            dl->AddLine(ImVec2(x1 + side * fs * 0.5f, wy), ImVec2(x1 + side * (fs * 0.5f + len), wy), k == 0 ? kGold : kGoldDim,
+                        std::max(1.0f, scale) * (k == 0 ? 2.0f : 1.0f));
+        }
+    }
+    dl->AddRectFilledMultiColor(r0, r1, band, band, deep, deep);
+    dl->AddRect(r0, r1, kGold, 0, 0, std::max(1.0f, scale));
+    DrawSpaced(dl, tf, ts, cx + fs * 0.06f, y + fs * 0.08f, kShadow, title, fs * 0.25f);
+    DrawSpaced(dl, tf, ts, cx, y, kGold, title, fs * 0.25f);
+    DrawSpaced(dl, ImGui::GetFont(), fs * 0.85f, cx, r1.y + fs * 0.45f, kWhite, sub, fs * 0.22f);
+}
 
 struct Choice {
     uint32_t value;
@@ -73,7 +181,7 @@ const Choice kLanguages[] = {{1, "English"}, {3, "German (text and voices)"}, {4
                              {7, "Korean (text)"}, {8, "Chinese, traditional (text)"}};
 const Choice kAudio[] = {{0, "Automatic"}, {1, "Stereo"}, {2, "5.1 surround"}, {3, "Mono"}};
 
-enum Row { kStart, kGame, kDisplayMode, kResolution, kRenderRes, kAntiAlias, kFiltering, kVideoUpscale, kVsync, kFrameRate, kFov, kHud, kSway, kFpsCounter, kDevice, kBindings, kMouseMode, kMouse, kMousePitch, kTriggers, kCrash,
+enum Row { kStart, kGame, kUpdate, kDisplayMode, kResolution, kRenderRes, kAntiAlias, kFiltering, kVideoUpscale, kVsync, kFrameRate, kFov, kHud, kSway, kFpsCounter, kDevice, kBindings, kMouseMode, kMouse, kMousePitch, kTriggers, kCrash,
            kAudioOut, kLanguage, kLauncherAtStart, kQuit, kRows };
 
 template <size_t N>
@@ -157,6 +265,7 @@ const char* Label(int row) {
     switch (row) {
         case kStart: return "START GAME";
         case kGame: return "Game";
+        case kUpdate: return "Updates";
         case kDisplayMode: return "Display mode";
         case kResolution: return "Resolution";
         case kRenderRes: return "Render resolution";
@@ -195,6 +304,21 @@ const char* Note(int row) {
                 case app::GameProbe::OtherRelease: return "A different release than this build was made for: it may crash. Enter to pick another.";
                 default: return "Enter or a click: pick your disc image (.iso) or the extracted game's default.xbe.";
             }
+        case kUpdate: {
+            static std::string note;  // the returned pointer outlives this frame's call
+            switch (updater::GetState()) {
+                case updater::State::Available:
+                    note = "Enter or a click: download " + updater::Latest() + " and restart. Settings and saves stay.";
+                    break;
+                case updater::State::Downloading:
+                case updater::State::Installing: note = "Updating: the launcher restarts when it is done."; break;
+                case updater::State::Failed: note = updater::Message() + "  Enter to try again."; break;
+                default:
+                    note = updater::g_check ? "Checks GitHub for a newer release when the launcher opens. Enter checks now."
+                                            : "Off: no update checks. Enter checks once now.";
+            }
+            return note.c_str();
+        }
         case kDisplayMode: return "Borderless fullscreen, exclusive fullscreen or a window.";
         case kResolution: return "The window's size. Desktop follows your screen.";
         case kRenderRes: return "Of the output height. Above 100% renders bigger and scales down: smooth edges, more GPU.";
@@ -229,6 +353,20 @@ std::string Value(int row) {
         case kGame:
             if (g_game.probe == app::GameProbe::Missing) return "Not found - choose...";
             return ShortPath(g_game.path, 44) + (g_game.probe == app::GameProbe::Match ? "" : "  (other release)");
+        case kUpdate:
+            switch (updater::GetState()) {
+                case updater::State::Checking: return "Checking...";
+                case updater::State::UpToDate:
+                    return std::string(updater::g_check ? "Up to date (" : "Off (up to date, ") + updater::Version() + ")";
+                case updater::State::Available: return "Version " + updater::Latest() + " available - install";
+                case updater::State::Downloading:
+                    std::snprintf(b, sizeof b, "Downloading... %d%%", updater::Progress());
+                    return b;
+                case updater::State::Installing: return "Installing...";
+                case updater::State::Ready: return "Restarting...";
+                case updater::State::Failed: return "Could not update - retry";
+                default: return updater::g_check ? "Check at startup" : "Off";
+            }
         case kDisplayMode: return kDisplay[IndexOf(kDisplay, uint32_t(s.display_mode))].label;
         case kResolution: {
             int i = ResolutionIndex(s);
@@ -289,6 +427,10 @@ void Change(int row, int d) {
         case kAudioOut: s.audio_output = Step(kAudio, s.audio_output, d); break;
         case kLanguage: s.language = Step(kLanguages, s.language, d); break;
         case kLauncherAtStart: g_show = !g_show; break;
+        case kUpdate:
+            updater::g_check = !updater::g_check;
+            if (updater::g_check && updater::GetState() == updater::State::Idle) updater::StartCheck();
+            break;
         default: return;
     }
     app::Save();
@@ -297,6 +439,19 @@ void Change(int row, int d) {
 bool HasOption(int row) { return row != kStart && row != kGame && row != kQuit && row != kBindings; }
 
 enum class Result { Pending, Start, Quit };
+
+bool g_restart = false;  // an update is in place: start the new version on the way out
+bool g_offered = false;  // the popup was shown for a found release
+bool g_popup = false;    // the update popup is open
+int g_popup_sel = 0;     // its button: 0 Update now, 1 Later
+
+// Enter or a click on the Updates row: install what was found, else check now
+void UpdateAction() {
+    updater::State st = updater::GetState();
+    if (st == updater::State::Available || (st == updater::State::Failed && !updater::Latest().empty())) updater::StartInstall();
+    else if (st != updater::State::Checking && st != updater::State::Downloading && st != updater::State::Installing)
+        updater::StartCheck();
+}
 
 // the key bindings page: every keyboard and mouse control, chosen by pressing the key
 bool g_bindings = false;      // the page is open
@@ -393,9 +548,10 @@ void DrawBindings(float scale) {
     float pw = col_w * 2 + pad * 3;
     float ph = title_h + row_h * (per_col + 1.5f) + note_h + pad;
     ImVec2 p0((io.DisplaySize.x - pw) / 2, (io.DisplaySize.y - ph) / 2), p1(p0.x + pw, p0.y + ph);
-    dl->AddRectFilled(p0, p1, kPanel, fs * 0.4f);
-    dl->AddRect(p0, p1, kAccent, fs * 0.4f, 0, std::max(1.0f, scale));
-    dl->AddText(ImGui::GetFont(), fs * 1.4f, ImVec2(p0.x + pad, p0.y + pad * 0.6f), kAccent, "KEY BINDINGS");
+    DrawPanel(dl, p0, p1, fs, scale);
+    DrawSpaced(dl, g_title_font ? g_title_font : ImGui::GetFont(), fs * 1.4f, (p0.x + p1.x) / 2, p0.y + pad * 0.6f, kGold,
+               "KEY BINDINGS", fs * 0.2f);
+    DrawRule(dl, p0.x + pad, p1.x - pad, p0.y + title_h - fs * 0.6f, fs, scale);
 
     for (int i = 0; i < rows; i++) {
         int col = i < n ? i / per_col : (i == kReset ? 0 : 1);
@@ -404,7 +560,7 @@ void DrawBindings(float scale) {
         ImVec2 a(x - pad * 0.3f, p0.y + title_h + r * row_h), b(x + col_w, a.y + row_h);
         bool hover = idle && ImGui::IsMouseHoveringRect(a, b, false);  // not clipped to ImGui's default window
         if (hover && (io.MouseDelta.x != 0 || io.MouseDelta.y != 0)) g_bsel = i;
-        if (i == g_bsel) dl->AddRectFilled(a, b, kHighlight, fs * 0.25f);
+        if (i == g_bsel) DrawHighlight(dl, a, b, fs, scale);
         float ty = a.y + (row_h - fs) / 2, tx = a.x + pad * 0.3f;
         ImU32 col_c = i == g_bsel ? kWhite : kGrey;
         if (i < n) {
@@ -431,14 +587,70 @@ void DrawBindings(float scale) {
     }
     const char* note = g_capture >= 0 ? "Press the key or mouse button for this control. Delete leaves it unbound."
                                       : "Enter or a click, then press the key  -  Esc/B back";
-    dl->AddText(ImVec2(p0.x + pad, p1.y - note_h + fs * 0.6f), kGrey, note);
+    DrawRule(dl, p0.x + pad, p1.x - pad, p1.y - note_h + fs * 0.1f, fs, scale);
+    dl->AddText(ImVec2(p0.x + pad, p1.y - note_h + fs * 0.8f), kGrey, note);
+}
+
+// the popup over the launcher when a newer release is out: Update now or Later. True while it is open (it takes the
+// input); the rows below stay drawn, dimmed.
+void DrawUpdatePopup(float scale, bool input) {
+    ImGuiIO& io = ImGui::GetIO();
+    ImDrawList* dl = ImGui::GetForegroundDrawList();
+    float fs = ImGui::GetFontSize(), pad = fs * 1.4f;
+    dl->AddRectFilled(ImVec2(0, 0), io.DisplaySize, IM_COL32(0, 0, 0, 150));
+    std::string head = "VERSION " + updater::Latest() + " IS OUT";
+    // the release's name without its "v1.9.0: " prefix
+    std::string what = updater::Message();
+    if (size_t c = what.find(": "); c != std::string::npos && c < 12) what = what.substr(c + 2);
+    std::string line1 = std::string("You have version ") + updater::Version() + (what.empty() ? "." : ".  New: " + what);
+    const char* line2 = "Update now downloads it and restarts the launcher. Your settings, saves and game stay.";
+    float pw = std::max(ImGui::CalcTextSize(line1.c_str()).x, ImGui::CalcTextSize(line2).x) + pad * 2;
+    pw = std::max(pw, fs * 22);
+    float ph = fs * 9.2f;
+    ImVec2 p0((io.DisplaySize.x - pw) / 2, (io.DisplaySize.y - ph) / 2), p1(p0.x + pw, p0.y + ph);
+    DrawPanel(dl, p0, p1, fs, scale);
+    float cx = (p0.x + p1.x) / 2;
+    DrawSpaced(dl, g_title_font ? g_title_font : ImGui::GetFont(), fs * 1.3f, cx, p0.y + fs * 0.9f, kGold, head.c_str(),
+               fs * 0.15f);
+    DrawRule(dl, p0.x + pad, p1.x - pad, p0.y + fs * 2.8f, fs, scale);
+    dl->AddText(ImVec2(cx - ImGui::CalcTextSize(line1.c_str()).x / 2, p0.y + fs * 3.4f), kWhite, line1.c_str());
+    dl->AddText(ImVec2(cx - ImGui::CalcTextSize(line2).x / 2, p0.y + fs * 4.7f), kGrey, line2);
+
+    // input: Left/Right pick a button, Enter/A takes it, Esc/B is Later
+    auto pressed = [input](ImGuiKey a, ImGuiKey b, ImGuiKey c) {
+        return input && (ImGui::IsKeyPressed(a, false) || ImGui::IsKeyPressed(b, false) || ImGui::IsKeyPressed(c, false));
+    };
+    if (pressed(ImGuiKey_LeftArrow, ImGuiKey_GamepadDpadLeft, ImGuiKey_GamepadLStickLeft)) g_popup_sel = 0;
+    if (pressed(ImGuiKey_RightArrow, ImGuiKey_GamepadDpadRight, ImGuiKey_GamepadLStickRight)) g_popup_sel = 1;
+    int choice = -1;
+    if (pressed(ImGuiKey_Enter, ImGuiKey_KeypadEnter, ImGuiKey_GamepadFaceDown) || (input && ImGui::IsKeyPressed(ImGuiKey_Space, false)))
+        choice = g_popup_sel;
+    if (pressed(ImGuiKey_Escape, ImGuiKey_GamepadFaceRight, ImGuiKey_Backspace)) choice = 1;
+
+    const char* labels[2] = {"Update now", "Later"};
+    float bw = fs * 8, bh = fs * 1.9f, gap = fs * 1.2f, by = p1.y - fs * 3.0f;
+    for (int i = 0; i < 2; i++) {
+        ImVec2 a(cx - bw - gap / 2 + i * (bw + gap), by), b(a.x + bw, by + bh);
+        bool hover = input && ImGui::IsMouseHoveringRect(a, b, false);
+        if (hover && (io.MouseDelta.x != 0 || io.MouseDelta.y != 0)) g_popup_sel = i;
+        if (hover && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) choice = i;
+        if (i == g_popup_sel) DrawHighlight(dl, a, b, fs, scale);
+        dl->AddRect(a, b, i == g_popup_sel ? kGold : kGoldDim, 0, 0, std::max(1.0f, scale));
+        ImVec2 ts = ImGui::CalcTextSize(labels[i]);
+        dl->AddText(ImVec2((a.x + b.x - ts.x) / 2, (a.y + b.y - ts.y) / 2), i == g_popup_sel ? kWhite : kGrey, labels[i]);
+    }
+    if (choice == 0) updater::StartInstall();
+    if (choice >= 0) {
+        g_popup = false;
+        g_wait_release = true;  // the Enter or click that closed it does not reach the rows
+    }
 }
 
 // one frame of the panel; returns the player's choice once made
 Result Draw(int& sel, float scale) {
     ImGuiIO& io = ImGui::GetIO();
     ImDrawList* dl = ImGui::GetBackgroundDrawList();
-    dl->AddRectFilled(ImVec2(0, 0), io.DisplaySize, kBackdrop);
+    DrawBackdrop(dl, io.DisplaySize);
     if (g_bindings) {
         DrawBindings(scale);
         return Result::Pending;
@@ -452,6 +664,8 @@ Result Draw(int& sel, float scale) {
     // after the file dialog
     bool input = g_input_cooldown == 0;
     if (g_input_cooldown > 0) g_input_cooldown--;
+    bool popup_input = input;
+    if (g_popup) input = false;  // the popup takes the keys, pad and mouse
     auto pressed = [input](ImGuiKey a, ImGuiKey b, ImGuiKey c) {
         return input && (ImGui::IsKeyPressed(a, false) || ImGui::IsKeyPressed(b, false) || ImGui::IsKeyPressed(c, false));
     };
@@ -463,41 +677,41 @@ Result Draw(int& sel, float scale) {
                   (input && ImGui::IsKeyPressed(ImGuiKey_Space, false));
     if (input && (ImGui::IsKeyPressed(ImGuiKey_Escape, false) || ImGui::IsKeyPressed(ImGuiKey_GamepadFaceRight, false)))
         return Result::Quit;
+    bool show_popup = g_popup;
 
     float fs = ImGui::GetFontSize();
-    float pad = fs * 1.6f, title_h = fs * 4.2f, note_h = fs * 3.2f;
+    float pad = fs * 1.6f, title_h = fs * 5.4f, note_h = fs * 3.6f;
     // rows as tall as the window allows, up to 1.9 lines each
     float row_h = std::min(fs * 1.9f, (io.DisplaySize.y - fs * 2 - title_h - note_h - pad) / kRows);
     float label_w = ImGui::CalcTextSize("Launcher at startup").x + fs * 3;
     float value_w = std::max(ImGui::CalcTextSize("< 200% (2x supersampling) >").x,
                              ImGui::CalcTextSize("...ssssssssssssssssssssssssssssssssssssssssss  (other release)").x) + fs;
-    const char* kHint = "Up/Down choose  -  Left/Right change  -  Enter/A start  -  Esc/B quit";
-    float text_w = ImGui::CalcTextSize(kHint).x;
+    const char* kHintText = "Up/Down choose  -  Left/Right change  -  Enter/A start  -  Esc/B quit";
+    float text_w = ImGui::CalcTextSize(kHintText).x;
     for (int r = 0; r < kRows; r++) text_w = std::max(text_w, ImGui::CalcTextSize(Note(r)).x);
     float pw = std::max(label_w + value_w, text_w) + pad * 2;
     float ph = title_h + row_h * kRows + note_h + pad;
     ImVec2 p0((io.DisplaySize.x - pw) / 2, (io.DisplaySize.y - ph) / 2), p1(p0.x + pw, p0.y + ph);
-    dl->AddRectFilled(p0, p1, kPanel, fs * 0.4f);
-    dl->AddRect(p0, p1, kAccent, fs * 0.4f, 0, std::max(1.0f, scale));
-
-    ImFont* font = ImGui::GetFont();
-    dl->AddText(font, fs * 1.6f, ImVec2(p0.x + pad, p0.y + pad * 0.6f), kAccent, "CRIMSON SKIES");
-    dl->AddText(ImVec2(p0.x + pad, p0.y + pad * 0.6f + fs * 1.8f), kGrey, "High Road to Revenge  -  native PC recompilation");
+    DrawPanel(dl, p0, p1, fs, scale);
+    DrawTitle(dl, p0, p1, fs, scale, "CRIMSON SKIES", "HIGH ROAD TO REVENGE  -  PC RECOMPILATION");
 
     Result result = Result::Pending;
     for (int r = 0; r < kRows; r++) {
         ImVec2 a(p0.x + pad * 0.5f, p0.y + title_h + r * row_h), b(p1.x - pad * 0.5f, a.y + row_h);
         bool hover = input && ImGui::IsMouseHoveringRect(a, b, false);  // not clipped to ImGui's default window
         if (hover && (io.MouseDelta.x != 0 || io.MouseDelta.y != 0)) sel = r;
-        if (r == sel) dl->AddRectFilled(a, b, kHighlight, fs * 0.25f);
+        if (r == sel) DrawHighlight(dl, a, b, fs, scale);
         float ty = a.y + (row_h - fs) / 2;
-        bool action = r == kStart || r == kGame || r == kQuit || r == kBindings;
-        ImU32 col = r == kStart ? (GameReady() ? kAccent : kGrey) : r == sel ? kWhite : kGrey;
+        bool action = r == kStart || r == kGame || r == kQuit || r == kBindings || r == kUpdate;
+        ImU32 col = r == kStart ? (GameReady() ? kGold : kGrey) : r == sel ? kWhite : kGrey;
         dl->AddText(ImVec2(p0.x + pad, ty), r == kStart && r == sel ? kWhite : col, Label(r));
         if (HasOption(r) || r == kGame || r == kBindings) {
             std::string v = r == kBindings ? std::string(">") : r == sel && r != kGame ? "<  " + Value(r) + "  >" : Value(r);
             float vw = ImGui::CalcTextSize(v.c_str()).x;
-            ImU32 vc = r == kGame && g_game.probe != app::GameProbe::Match ? kAccent : r == sel ? kWhite : kGrey;
+            ImU32 vc = r == kGame && g_game.probe != app::GameProbe::Match ? kAccent
+                       : r == kUpdate && updater::GetState() == updater::State::Available ? kGold
+                       : r == kUpdate && updater::GetState() == updater::State::Failed ? kAccent
+                       : r == sel ? kWhite : kGrey;
             dl->AddText(ImVec2(p1.x - pad - vw, ty), vc, v.c_str());
         }
         if (hover && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
@@ -513,10 +727,29 @@ Result Draw(int& sel, float scale) {
         else if (sel == kGame && BrowseGame() && GameReady()) sel = kStart;  // next Enter starts the game
         else if (sel == kQuit) result = Result::Quit;
         else if (sel == kBindings) OpenBindings();
+        else if (sel == kUpdate) UpdateAction();
         else Change(sel, 1);
     }
-    dl->AddText(ImVec2(p0.x + pad, p1.y - note_h + fs * 0.6f), kGrey, Note(sel));
-    dl->AddText(ImVec2(p0.x + pad, p1.y - fs * 1.6f), IM_COL32(120, 110, 105, 255), kHint);
+    // an update being written must finish first; once in place the launcher closes and the new version starts
+    updater::State us = updater::GetState();
+    if (us == updater::State::Installing && result != Result::Pending) result = Result::Pending;
+    if (us == updater::State::Ready) {
+        g_restart = true;
+        result = Result::Quit;
+    }
+    // a newer release found: a popup offers it, once
+    if (us == updater::State::Available && !g_offered) {
+        g_offered = true;
+        g_popup = true;
+        g_popup_sel = 0;
+        sel = kUpdate;
+    }
+    DrawRule(dl, p0.x + pad, p1.x - pad, p1.y - note_h + fs * 0.1f, fs, scale);
+    dl->AddText(ImVec2(p0.x + pad, p1.y - note_h + fs * 0.8f), kGrey, Note(sel));
+    dl->AddText(ImVec2(p0.x + pad, p1.y - fs * 1.6f), kHint, kHintText);
+    std::string ver = std::string("v") + updater::Version();
+    dl->AddText(ImVec2(p1.x - pad - ImGui::CalcTextSize(ver.c_str()).x, p1.y - fs * 1.6f), kHint, ver.c_str());
+    if (show_popup) DrawUpdatePopup(scale, popup_input);
     return result;
 }
 
@@ -558,7 +791,7 @@ bool Run() {
     wc.hCursor = LoadCursorW(nullptr, IDC_ARROW);
     wc.lpszClassName = L"CrimsonSkiesLauncher";
     RegisterClassExW(&wc);
-    int w = int(1240 * scale), h = int(820 * scale);
+    int w = int(1240 * scale), h = int(880 * scale);
     RECT rc{0, 0, w, h};
     DWORD style = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX;
     AdjustWindowRect(&rc, style, FALSE);
@@ -603,11 +836,23 @@ bool Run() {
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard | ImGuiConfigFlags_NavEnableGamepad;
     ImFontConfig fc;
     fc.SizePixels = 19.0f * scale;
-    io.Fonts->AddFontDefault(&fc);
+    // Georgia (on every Windows since XP) gives the game's 1930s serif look; the default font when it is missing
+    wchar_t windir[MAX_PATH] = L"C:\\Windows";
+    GetWindowsDirectoryW(windir, MAX_PATH);
+    std::filesystem::path fonts = std::filesystem::path(windir) / "Fonts";
+    auto load = [&](const char* name, float px) -> ImFont* {
+        std::filesystem::path f = fonts / name;
+        std::error_code ec;
+        if (!std::filesystem::exists(f, ec)) return nullptr;
+        return io.Fonts->AddFontFromFileTTF(Utf8(f).c_str(), px);
+    };
+    if (!load("georgia.ttf", 19.0f * scale)) io.Fonts->AddFontDefault(&fc);
+    g_title_font = load("georgiab.ttf", 19.0f * scale * 2.0f);
     ImGui_ImplWin32_Init(hwnd);
     ImGui_ImplDX11_Init(dev, dc);
 
     ProbeGame();
+    if (updater::g_check) updater::StartCheck();
     int sel = GameReady() ? kStart : kGame;
     Result result = Result::Pending;
     g_closed = false;
@@ -617,7 +862,7 @@ bool Run() {
             TranslateMessage(&msg);
             DispatchMessageW(&msg);
         }
-        if (g_closed) result = Result::Quit;
+        if (g_closed && updater::GetState() != updater::State::Installing) result = Result::Quit;
         ImGui_ImplDX11_NewFrame();
         ImGui_ImplWin32_NewFrame();
         ImGui::NewFrame();
@@ -641,6 +886,9 @@ bool Run() {
     DestroyWindow(hwnd);
     UnregisterClassW(wc.lpszClassName, inst);
     app::Save();
+    if (g_restart && !updater::Relaunch())
+        MessageBoxW(nullptr, L"The update is installed. Start CrimsonSkies.exe again to play the new version.",
+                    L"Crimson Skies", MB_OK | MB_ICONINFORMATION);
     return result == Result::Start;
 }
 

@@ -4,6 +4,7 @@
 #include "frame_rate.h"
 #include "kbm.h"
 #include "launcher.h"
+#include "updater.h"
 #include "widescreen.h"
 
 #include <cstdlib>
@@ -11,6 +12,7 @@
 namespace {
 // the launcher first, which may change any setting; then what depends on the settings
 void Startup() {
+    updater::Cleanup();  // what an update left: the previous version's files
     if (launcher::Wanted() && !launcher::Run()) std::exit(0);
     frame_rate::Init();
 }
@@ -56,6 +58,7 @@ const app::GameInfo app::kGame = {
                 {"game_fps", nullptr, &frame_rate::g_fps},    // 30 (original) to 240
                 {"camera_sway", nullptr, &frame_rate::g_sway},  // turbulence sway of the camera, percent
                 {"launcher", &launcher::g_show, nullptr},     // the pre-game launcher
+                {"check_updates", &updater::g_check, nullptr},  // the launcher asks GitHub for a newer release
                 {"impulse_triggers", &feedback::g_triggers, nullptr},  // trigger motors follow the game's rumble
                 {"crash_rumble", &feedback::g_crash, nullptr},         // collisions held and faded
                 {"fov", nullptr, &widescreen::g_fov},

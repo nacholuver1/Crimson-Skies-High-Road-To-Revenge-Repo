@@ -1,7 +1,9 @@
 # Crimson Skies: High Road to Revenge (original Xbox), statically recompiled
 
 cmake_minimum_required(VERSION 3.25)
-project(crimsonskies LANGUAGES C CXX)
+# the release version: the launcher shows it and compares it with GitHub's latest release (src/common/updater.cpp);
+# tools/make_release.ps1 packs this version
+project(crimsonskies VERSION 1.8.1 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -40,4 +42,5 @@ add_xbe_image(CrimsonSkies default.xbe game.toml ${GAME_PARTITIONS} game)
 
 # the pre-game launcher (src/common/launcher.cpp) draws with ImGui on Direct3D 11, before the game's window
 target_sources(CrimsonSkies PRIVATE ${imgui_SOURCE_DIR}/backends/imgui_impl_dx11.cpp)
-target_link_libraries(CrimsonSkies PRIVATE d3d11 comdlg32)
+target_link_libraries(CrimsonSkies PRIVATE d3d11 comdlg32 winhttp bcrypt)
+target_compile_definitions(CrimsonSkies PRIVATE CS_VERSION="${PROJECT_VERSION}")

@@ -33,6 +33,9 @@ Controls
 
 Settings (saved to settings.toml next to the program; the launcher writes it)
   Game                        your disc image or game folder (game_path in settings.toml)
+  Updates                     the launcher asks GitHub for a newer release when it opens and offers it in a
+                              popup: Update now downloads it, checks it and restarts the launcher (settings,
+                              saves and your game stay). Left/Right turns the check off (check_updates).
   Display mode, resolution    borderless, fullscreen or a window
   Render resolution           of your screen's height; above 100% renders bigger and averages down (supersampling)
   Anti-aliasing               FXAA on the final image
@@ -66,6 +69,7 @@ Settings (saved to settings.toml next to the program; the launcher writes it)
 Command-line options
   --no-launcher   start the game directly this once
   --launcher      show the launcher even when it is turned off
+  --no-update-check  no update check this time
 
 Everything stays in this folder
   assets\        your game, if you put it here instead of picking it in the launcher
@@ -75,8 +79,8 @@ Everything stays in this folder
   settings.toml  settings
   logs\          a log of each run
   CrashDumps\    crash dumps, if it ever crashes
-  Delete the folder and it's all gone. When updating, copy the new files over the old ones; keep assets\, hdd\
-  and settings.toml.
+  Delete the folder and it's all gone. The launcher's Updates row updates in place; to update by hand, copy the
+  new files over the old ones and keep assets\, hdd\ and settings.toml.
 
 Keyboard and mouse (change any of these in the launcher's Key bindings page)
   W / S          nose down / nose up          A / D          turn left / right

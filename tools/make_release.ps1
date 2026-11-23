@@ -3,13 +3,21 @@
 # code on the player's PC at first start, from their own default.xbe), an empty assets\ folder, README.txt and
 # licenses\. Never any game data or generated code: compiler\work\ stays out, and a guard refuses game files.
 #
-# Usage: powershell -ExecutionPolicy Bypass -File tools\make_release.ps1 -Version 1.0.0 [-NoBuild]
+# The version is CMakeLists.txt's project(VERSION): the exe shows it and its updater compares it with GitHub's latest
+# release, so bump it there first. The zip's name and folder must stay CrimsonSkiesRecomp-<version>-win64: the updater
+# looks for the release file ending in -win64.zip and the folder holding CrimsonSkies.exe.
+#
+# Usage: powershell -ExecutionPolicy Bypass -File tools\make_release.ps1 [-Version 1.9.0] [-NoBuild]
 param(
-    [Parameter(Mandatory = $true)][string]$Version,
+    [string]$Version,
     [switch]$NoBuild
 )
 $ErrorActionPreference = "Stop"
 $root = Split-Path $PSScriptRoot -Parent
+$cmakeVersion = [regex]::Match((Get-Content (Join-Path $root "CMakeLists.txt") -Raw), 'project\(crimsonskies VERSION ([0-9.]+)').Groups[1].Value
+if (-not $cmakeVersion) { throw "no project(crimsonskies VERSION x.y.z) in CMakeLists.txt" }
+if (-not $Version) { $Version = $cmakeVersion }
+if ($Version -ne $cmakeVersion) { throw "-Version $Version differs from CMakeLists.txt's ${cmakeVersion}: bump it there (the exe reports it)" }
 $bin = Join-Path $root "out\build\release"
 $name = "CrimsonSkiesRecomp-$Version-win64"
 $dist = Join-Path $root "dist"

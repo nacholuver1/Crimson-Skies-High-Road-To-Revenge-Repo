@@ -57,8 +57,11 @@ texture filtering, video upscaling, vsync, frame rate, FPS counter, trigger and 
 | `impulse_triggers` | Xbox One / Series trigger motors follow the guns, afterburner and crashes (on by default) |
 | `crash_rumble` | crashes held and faded into a strong jolt; false keeps the game's very short one (on by default) |
 | `launcher` | false starts the game directly |
+| `check_updates` | the launcher asks GitHub for the latest release when it opens and offers a newer one in a popup (on by default); **Update now** downloads the win64 zip, checks its SHA-256 against the one GitHub lists, moves the new files over the old ones and restarts. Settings, saves and the game are not in the zip, so they stay. |
 
-Command line: `--no-launcher` skips the launcher once, `--launcher` shows it even when it is turned off.
+Command line: `--no-launcher` skips the launcher once, `--launcher` shows it even when it is turned off,
+`--no-update-check` skips the update check once. The version is `project(VERSION)` in `CMakeLists.txt`;
+`tools/make_release.ps1` packs that version.
 
 ## Building from source
 
