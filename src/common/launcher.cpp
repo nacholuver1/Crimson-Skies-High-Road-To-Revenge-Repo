@@ -205,7 +205,7 @@ const char* Note(int row) {
         case kFrameRate: return "The game was made for 30. Higher is smoother; set it to your monitor's refresh.";
         case kSway: return "The camera's turbulence sway. Lower it if the motion makes you feel sick.";
         case kFov: return "How much of the world you see. Wider can help with motion sickness.";
-        case kHud: return "On wide screens: Fit keeps the HUD and menus in shape, pinned to the edges. Stretch fills the width.";
+        case kHud: return "On wide screens: Fit keeps the HUD and menus in shape, centered. Stretch fills the width.";
         case kFpsCounter: return "Frame rate in the corner. F2 shows or hides it in game.";
         case kDevice: return "Auto: both work, and the controller only vibrates when you used it last.";
         case kBindings: return "Enter or a click: choose the keys and mouse buttons for every control.";

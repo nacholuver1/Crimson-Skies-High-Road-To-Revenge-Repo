@@ -46,7 +46,7 @@ Settings (saved to settings.toml next to the program; the launcher writes it)
                               On a widescreen or ultrawide monitor (up to 32:9) the 3D view fills the
                               screen at its true shape.
   HUD                         Fit: on a widescreen or ultrawide monitor the HUD and menus keep their
-                              shape, pinned to the screen's edges. Stretch: drawn across the width.
+                              shape and layout, centered. Stretch: drawn across the width.
   Input device                Auto: keyboard, mouse and controller all work, and the controller only
                               vibrates when you used it last. Or Controller only, or Keyboard and mouse.
   Key bindings                every keyboard and mouse control: pick one, press the new key

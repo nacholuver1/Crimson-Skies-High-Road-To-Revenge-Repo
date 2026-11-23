@@ -8,7 +8,7 @@
 //
 // Found by crazyriddler's "Widescreen 16-9" patch for this game in xbased, which changes the x push; written here
 // from what it changes, as a hook. The HUD and menus are drawn in 640x480 screen space: the runtime's fit_hud
-// narrows each of those draws back to its shape, pinned to the left edge, center or right edge.
+// narrows each of those draws back to its shape about the center.
 #include "widescreen.h"
 
 #include <cstring>
