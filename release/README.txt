@@ -44,7 +44,9 @@ Settings (saved to settings.toml next to the program; the launcher writes it)
                               feel sick (100% is the original)
   Field of view               80% to 130% of the original view; wider can help with motion sickness.
                               On a widescreen or ultrawide monitor (up to 32:9) the 3D view fills the
-                              screen at its true shape (the HUD stays stretched).
+                              screen at its true shape.
+  HUD                         Fit: on a widescreen or ultrawide monitor the HUD and menus keep their
+                              shape, pinned to the screen's edges. Stretch: drawn across the width.
   Input device                Auto: keyboard, mouse and controller all work, and the controller only
                               vibrates when you used it last. Or Controller only, or Keyboard and mouse.
   Key bindings                every keyboard and mouse control: pick one, press the new key
@@ -92,8 +94,6 @@ Known issues
     translated: the game stops on its error screen. Restart the program.
   - The game was made for 30 fps. Higher frame rates were tested through the campaign without problems, but if
     something feels too fast or slow, set the frame rate to 30 and report it.
-  - The HUD and menus are drawn for a 4:3 screen and look stretched on a widescreen or ultrawide monitor
-    (the 3D view is at its true shape).
 
 Reporting a problem
   Open an issue on the project's GitHub page and attach the newest file from logs\ (and from CrashDumps\ if it

@@ -73,7 +73,7 @@ const Choice kLanguages[] = {{1, "English"}, {3, "German (text and voices)"}, {4
                              {7, "Korean (text)"}, {8, "Chinese, traditional (text)"}};
 const Choice kAudio[] = {{0, "Automatic"}, {1, "Stereo"}, {2, "5.1 surround"}, {3, "Mono"}};
 
-enum Row { kStart, kGame, kDisplayMode, kResolution, kRenderRes, kAntiAlias, kFiltering, kVideoUpscale, kVsync, kFrameRate, kFov, kSway, kFpsCounter, kDevice, kBindings, kMouseMode, kMouse, kMousePitch, kTriggers, kCrash,
+enum Row { kStart, kGame, kDisplayMode, kResolution, kRenderRes, kAntiAlias, kFiltering, kVideoUpscale, kVsync, kFrameRate, kFov, kHud, kSway, kFpsCounter, kDevice, kBindings, kMouseMode, kMouse, kMousePitch, kTriggers, kCrash,
            kAudioOut, kLanguage, kLauncherAtStart, kQuit, kRows };
 
 template <size_t N>
@@ -166,6 +166,7 @@ const char* Label(int row) {
         case kVsync: return "VSync";
         case kFrameRate: return "Frame rate";
         case kFov: return "Field of view";
+        case kHud: return "HUD";
         case kSway: return "Camera sway";
         case kFpsCounter: return "FPS counter";
         case kDevice: return "Input device";
@@ -204,6 +205,7 @@ const char* Note(int row) {
         case kFrameRate: return "The game was made for 30. Higher is smoother; set it to your monitor's refresh.";
         case kSway: return "The camera's turbulence sway. Lower it if the motion makes you feel sick.";
         case kFov: return "How much of the world you see. Wider can help with motion sickness.";
+        case kHud: return "On wide screens: Fit keeps the HUD and menus in shape, pinned to the edges. Stretch fills the width.";
         case kFpsCounter: return "Frame rate in the corner. F2 shows or hides it in game.";
         case kDevice: return "Auto: both work, and the controller only vibrates when you used it last.";
         case kBindings: return "Enter or a click: choose the keys and mouse buttons for every control.";
@@ -243,6 +245,7 @@ std::string Value(int row) {
         case kFrameRate: return kFps[IndexOf(kFps, frame_rate::Fps())].label;
         case kSway: return kSways[IndexOf(kSways, std::min(frame_rate::g_sway, 100u))].label;
         case kFov: return kFovs[IndexOf(kFovs, widescreen::Fov())].label;
+        case kHud: return s.fit_hud ? "Fit" : "Stretch";
         case kFpsCounter: return fps_overlay::g_show ? "On" : "Off";
         case kDevice: return kDevices[IndexOf(kDevices, kbm::g_device)].label;
         case kMouseMode: return kMouseModes[IndexOf(kMouseModes, kbm::g_mouse_mode)].label;
@@ -275,6 +278,7 @@ void Change(int row, int d) {
         case kFrameRate: frame_rate::g_fps = Step(kFps, frame_rate::Fps(), d); break;
         case kSway: frame_rate::g_sway = Step(kSways, std::min(frame_rate::g_sway, 100u), d); break;
         case kFov: widescreen::g_fov = Step(kFovs, widescreen::Fov(), d); break;
+        case kHud: s.fit_hud = !s.fit_hud; break;
         case kFpsCounter: fps_overlay::g_show = !fps_overlay::g_show; break;
         case kDevice: kbm::g_device = Step(kDevices, kbm::g_device, d); break;
         case kMouseMode: kbm::g_mouse_mode = Step(kMouseModes, kbm::g_mouse_mode, d); break;

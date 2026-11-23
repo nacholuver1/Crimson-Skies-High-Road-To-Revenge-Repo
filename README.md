@@ -41,6 +41,7 @@ texture filtering, video upscaling, vsync, frame rate, FPS counter, trigger and 
 | `game_fps` | 30 (the original) to 240; 60 by default. The renderer's `fps_cap` is raised to match. |
 | `camera_sway` | the camera's turbulence sway in percent, 0 (off) to 100 (the original, default) |
 | `fov` | field of view in percent of the original, 80 to 130 (100 by default). On a widescreen output the 3D view fills the monitor's shape, 16:9 up to 32:9. |
+| `fit_hud` | on a widescreen output the HUD and menus keep their 4:3 shape, pinned to the left edge, center or right edge (on by default); off stretches them to the width |
 | `show_fps` | FPS counter in the corner; **F2** toggles it in game |
 | `fxaa` | FXAA on the final image |
 | `upscale_videos` | cutscenes and stills: bicubic upscaling and deinterlacing (on by default) |
