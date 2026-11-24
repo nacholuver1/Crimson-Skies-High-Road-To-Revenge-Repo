@@ -305,6 +305,12 @@ bool Message(void* hwnd, uint32_t msg, uintptr_t wp, intptr_t lp, intptr_t* resu
     }
 }
 
+// the maneuver being played, if any
+static const Maneuver* playing = nullptr;
+static int64_t step_since = 0, started = 0;
+static int step = 0;
+static bool was_down[kActionCount] = {};
+
 void Pad(int port, input::Pad& p) {
     using namespace std::chrono;
     static auto last = steady_clock::now();
@@ -318,6 +324,7 @@ void Pad(int port, input::Pad& p) {
     int dx = g_dx.exchange(0), dy = g_dy.exchange(0);
     if (!Front()) {
         g_sx = g_sy = 0;
+        playing = nullptr;  // a maneuver doesn't carry on after the window comes back
         return;
     }
     p.connected = true;
@@ -365,10 +372,6 @@ void Pad(int port, input::Pad& p) {
     }
 
     // the other maneuvers: a press starts the maneuver's stick moves, which then play out on their own
-    static const Maneuver* playing = nullptr;
-    static int64_t step_since = 0, started = 0;
-    static int step = 0;
-    static bool was_down[kActionCount] = {};
     for (const Maneuver& m : kManeuvers) {
         bool d = Down(m.action);
         if (d && !was_down[m.action] && !playing) {
