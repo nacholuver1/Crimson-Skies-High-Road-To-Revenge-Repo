@@ -24,6 +24,12 @@ First run
      minutes (about 1 on an 8-core CPU), and only happens once (if you close it, the next start carries on).
      After that the game starts in a few seconds.
 
+RecompLauncher
+  This release works with RecompLauncher (recomplauncher.com): it picks and checks your disc, shows the settings
+  below on the game's page, and keeps the game up to date itself (the in-game update check stays off there).
+  Shortcuts and other launchers can name the game too: CrimsonSkies.exe --game "D:\path\to\your game.iso"
+  (or the extracted game's folder) uses that copy for the run.
+
 Steam Deck and Linux (Proton)
   Players run it at a steady 60 fps on the Steam Deck. In Desktop Mode:
   1. Download the -win64.zip and extract it with Ark (right-click it, Extract, Extract archive here). Check that
