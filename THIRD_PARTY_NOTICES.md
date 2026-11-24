@@ -27,6 +27,7 @@ The SDK's executables include these libraries (their licenses are in the release
 | [SDL3](https://github.com/libsdl-org/SDL) | zlib |
 | [LLVM](https://llvm.org) Clang and LLD, shipped in `compiler\` to build the game's code on the player's PC | Apache-2.0 with LLVM exceptions |
 | Microsoft Visual C++ runtime (`msvcp140.dll`, `vcruntime140.dll`, `vcruntime140_1.dll`) | Visual Studio redistributable |
+| Microsoft shader compiler (`d3dcompiler_47.dll`, from the Windows SDK's `Redist\D3D` folder) | Windows SDK redistributable |
 
 ## darkuni's recomp menus
 

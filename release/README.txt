@@ -9,8 +9,8 @@ What you need
   - Your own Crimson Skies: High Road to Revenge disc for the original Xbox (the USA retail release), dumped to a
     disc image (.iso, a whole dump or an xiso) or extracted to its files. Other releases and betas won't work: the
     program matches that exact game executable.
-  - Windows 10 or 11, 64-bit, and a GPU with Direct3D 12. There is no native Linux build; Proton or Wine may
-    work but is untested.
+  - Windows 10 or 11, 64-bit, and a GPU with Direct3D 12. Or a Steam Deck or Linux PC through Proton: see
+    "Steam Deck and Linux" below. There is no native Linux build.
   - About 200 MB of free space next to the program for the game's translated code (plus about 4.5 GB if you
     extract the game files instead of using the .iso).
 
@@ -23,6 +23,26 @@ First run
   4. The very first start translates the game's code for your PC, behind a progress window. It takes a few
      minutes (about 1 on an 8-core CPU), and only happens once (if you close it, the next start carries on).
      After that the game starts in a few seconds.
+
+Steam Deck and Linux (Proton)
+  Players run it at a steady 60 fps on the Steam Deck. In Desktop Mode:
+  1. Download the -win64.zip and extract it with Ark (right-click it, Extract, Extract archive here). Check that
+     the new folder has CrimsonSkies.exe next to the assets, compiler and licenses folders. Some SteamOS unzip
+     tools drop the folders and leave every file in one place: if so, delete it and extract again with Ark.
+  2. Optional: copy your .iso into the assets folder (or pick it in the launcher later).
+  3. In Steam: Games, Add a Non-Steam Game to My Library, and pick CrimsonSkies.exe. In its Properties,
+     Compatibility, tick "Force the use of a specific Steam Play compatibility tool" and pick Proton
+     (Proton Experimental or the newest version).
+  Then in Gaming Mode:
+  4. Start it. The launcher works with the Deck's controls. Pick your game on the Game row and your settings
+     (Display mode Fullscreen, 1280x800, Frame rate 60), then START GAME.
+  5. The first start translates the game's code (several minutes on the Deck, once). After that the intro
+     movies play and the game starts.
+  The program comes with Microsoft's shader compiler (d3dcompiler_47.dll, next to CrimsonSkies.exe), because
+  Proton's own one leaves the screen black. You no longer need Protontricks or launch options for it (releases
+  before 1.9.1 did). If the game warns that shaders could not be compiled, check that d3dcompiler_47.dll is next
+  to CrimsonSkies.exe (extract the zip again), or install d3dcompiler_47 for the game with Protontricks.
+  Updates from the launcher work the same as on Windows.
 
 Controls
   Launcher        : arrows or D-pad to move, Left/Right to change, Enter or A to start, Esc or B to quit.
@@ -110,4 +130,5 @@ Credits and licenses
   requests by maxscipio (XDK 5659 signatures), paulohenriquesn and yacineolivier-maker. The frame rate unlock
   follows crazyriddler's patches for this game in xbased; the menu text fix follows the diagnosis in xemu issue
   #2902 and its fix by abaire; the launcher's design is adapted from darkuni's MIT-licensed recomp menus. See the licenses
-  folder. Crimson Skies is a trademark of Microsoft; this project is not affiliated with or endorsed by Microsoft.
+  folder. The Steam Deck steps follow StealthRook's and ROCraiderny's notes in issue #2.
+  Crimson Skies is a trademark of Microsoft; this project is not affiliated with or endorsed by Microsoft.

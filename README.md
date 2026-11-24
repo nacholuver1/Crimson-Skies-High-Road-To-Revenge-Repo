@@ -27,8 +27,23 @@ stops the game.
 4. The first start translates the game's code for your PC behind a progress window (a few minutes, about 1
    on an 8-core CPU; once). Later starts take a few seconds.
 
-Needs Windows 10 or 11, 64-bit, and a Direct3D 12 GPU. Linux: there is no native build (the SDK targets Windows);
-Proton or Wine may work but is untested, and reports are welcome. The player guide is [release/README.txt](release/README.txt).
+Needs Windows 10 or 11, 64-bit, and a Direct3D 12 GPU. The player guide is [release/README.txt](release/README.txt).
+
+### Steam Deck and Linux
+
+There is no native Linux build (the SDK targets Windows), but the Windows build runs under Proton, at a steady
+60 fps on the Steam Deck:
+
+1. In Desktop Mode, extract the zip with **Ark** (Extract archive here) and check that `CrimsonSkies.exe` sits
+   next to the `assets`, `compiler` and `licenses` folders. Some SteamOS unzip tools flatten the folders.
+2. Steam: **Add a Non-Steam Game**, pick `CrimsonSkies.exe`, and in Properties, Compatibility, force Proton
+   (Experimental or the newest).
+3. In Gaming Mode, start it, pick your game and settings (Fullscreen, 1280x800, 60 fps) and press **START GAME**.
+   The first start translates the game's code (several minutes on the Deck, once).
+
+Since 1.9.1 the release carries Microsoft's `d3dcompiler_47.dll` next to the exe, which Proton loads instead of its
+own (that one leaves the screen black), so Protontricks and launch options are no longer needed. If shaders still
+fail to compile under Wine, the game says so in a message box.
 
 ## Settings
 
@@ -106,6 +121,8 @@ sources. Tools in `tools/`: `extract_xiso.py` (disc images), `xbe_info.py` (exec
   text; the earlier recomps of this game by saironbusatto and sp00nznet, whose notes were checked against this one.
 - [darkuni's recomp menus](https://github.com/darkuni/outrun-arcade-recomp) (MIT), by way of the Blitz recomps,
   for the launcher's design.
+- StealthRook's and ROCraiderny's Steam Deck notes in issue [#2](../../issues/2), which the Steam Deck steps
+  follow.
 - Built by Claude (Anthropic) with Claude Code, directed and play-tested by nacholuver1.
 
 Full notices: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

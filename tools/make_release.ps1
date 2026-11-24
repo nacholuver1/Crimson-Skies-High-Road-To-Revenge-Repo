@@ -1,5 +1,6 @@
 # Packs the player download: dist\CrimsonSkiesRecomp-<version>-win64.zip
-# Contents: CrimsonSkies.exe, the Visual C++ runtime, compiler\ (the recompiler, Clang and LLD that build the game's
+# Contents: CrimsonSkies.exe, the Visual C++ runtime, Microsoft's shader compiler (d3dcompiler_47.dll), compiler\
+# (the recompiler, Clang and LLD that build the game's
 # code on the player's PC at first start, from their own default.xbe), an empty assets\ folder, README.txt and
 # licenses\. Never any game data or generated code: compiler\work\ stays out, and a guard refuses game files.
 #
@@ -41,6 +42,12 @@ if (Test-Path $zip) { Remove-Item -Force $zip }
 New-Item -ItemType Directory -Force $stage, (Join-Path $stage "assets"), (Join-Path $stage "compiler") | Out-Null
 
 Copy-Item (Join-Path $bin "CrimsonSkies.exe") $stage
+# Microsoft's shader compiler from the Windows SDK's redistributable folder, beside the exe: Proton/Wine (Steam Deck,
+# Linux) loads it before its own d3dcompiler_47, which fails on the renderer's shaders and leaves the screen black
+$d3dc = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\Redist\D3D\x64\d3dcompiler_47.dll" -ErrorAction SilentlyContinue |
+    Select-Object -First 1
+if (-not $d3dc) { throw "d3dcompiler_47.dll not found in the Windows SDK's Redist\D3D\x64: install the Windows SDK" }
+Copy-Item $d3dc.FullName $stage
 foreach ($dll in "msvcp140.dll", "vcruntime140.dll", "vcruntime140_1.dll") {
     Copy-Item (Join-Path $crt.FullName $dll) $stage
     Copy-Item (Join-Path $crt.FullName $dll) (Join-Path $stage "compiler")  # xbe_recomp.exe looks beside itself
@@ -72,7 +79,7 @@ foreach ($d in @(@("zydis-src", "zydis.txt"), @("tomlplusplus-src", "tomlplusplu
 # guard: nothing from the game, no generated code, no player files
 $bad = Get-ChildItem $stage -Recurse -File | Where-Object {
     $_.Extension -in '.xbe', '.iso', '.xiso', '.bik', '.xmv', '.zip', '.bin', '.xbx', '.dll' -and
-    $_.Name -notin 'msvcp140.dll', 'vcruntime140.dll', 'vcruntime140_1.dll' -or
+    $_.Name -notin 'msvcp140.dll', 'vcruntime140.dll', 'vcruntime140_1.dll', 'd3dcompiler_47.dll' -or
     $_.Name -eq 'settings.toml' -or $_.FullName -like '*\work\*' -or $_.FullName -like '*\generated\*' -or
     $_.Name -like 'x86_recomp*'
 }
