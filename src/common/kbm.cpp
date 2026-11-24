@@ -36,7 +36,43 @@ namespace {
 enum : int {
     kNoseDown, kNoseUp, kTurnLeft, kTurnRight, kRollLeft, kRollRight, kSpeedUp, kSpeedDown, kPrimary, kSecondary,
     kBoost, kBrake, kSpecial, kButtonA, kButtonX, kBlack, kWhite, kLeftClick, kDpadUp, kDpadDown, kDpadLeft,
-    kDpadRight, kStart, kBack, kAccept, kCancel, kMouseRightHold, kImmelmann, kActionCount
+    kDpadRight, kStart, kBack, kAccept, kCancel, kMouseRightHold, kImmelmann, kSplitS, kSnapTurn, kPowerClimb,
+    kBackStallLoop, kYoYo, kSnapRollLeft, kSnapRollRight, kDoubleSnapLeft, kDoubleSnapRight, kBarrelCw, kBarrelCcw,
+    kDoubleBarrelCw, kDoubleBarrelCcw, kActionCount
+};
+
+// The maneuver keys play what the game reads as that maneuver: a click of the right stick (R3, the game only takes
+// maneuvers in a short window after it) and the stick moves (left stick, right stick; up is +1, down -1). A step with
+// hold set lasts as long as the key is held, at least ms; the others last exactly ms, so a "push" key held down
+// doesn't turn into the "hold" maneuver.
+struct Step {
+    int ms;
+    bool hold;
+    float lx, ly, rx, ry;
+};
+struct Maneuver {
+    int action;
+    Step steps[4];
+    int count;
+};
+constexpr int kPush = 200, kHold = 700;
+const Maneuver kManeuvers[] = {
+    {kSplitS, {{kPush, false, 0, 1, 0, 1}}, 1},
+    {kSnapTurn, {{kPush, false, 0, 1, 0, -1}}, 1},
+    {kPowerClimb, {{kPush, false, 0, -1, 0, 1}}, 1},
+    // hold the left stick down, push the right stick up, then push the left stick down again
+    {kBackStallLoop, {{kPush, false, 0, -1, 0, 1}, {500, true, 0, -1, 0, 0}, {150, false, 0, 0, 0, 0},
+                      {kPush, false, 0, -1, 0, 0}}, 4},
+    // the left stick down, then up as the nose rises, with the right stick up
+    {kYoYo, {{kPush, false, 0, -1, 0, 1}, {250, false, 0, 1, 0, 1}}, 2},
+    {kSnapRollLeft, {{kPush, false, -1, 0, -1, 0}}, 1},
+    {kSnapRollRight, {{kPush, false, 1, 0, 1, 0}}, 1},
+    {kDoubleSnapLeft, {{kHold, true, -1, 0, -1, 0}}, 1},
+    {kDoubleSnapRight, {{kHold, true, 1, 0, 1, 0}}, 1},
+    {kBarrelCw, {{kPush, false, -1, 0, 1, 0}}, 1},
+    {kBarrelCcw, {{kPush, false, 1, 0, -1, 0}}, 1},
+    {kDoubleBarrelCw, {{kHold, true, -1, 0, 1, 0}}, 1},
+    {kDoubleBarrelCcw, {{kHold, true, 1, 0, -1, 0}}, 1},
 };
 
 std::vector<Action> Defaults() {
@@ -69,6 +105,19 @@ std::vector<Action> Defaults() {
         {"cancel", "Menu back (B)", {VK_BACK}},
         {"mouse_right_stick", "Mouse moves right stick (hold)", {VK_CONTROL}},
         {"immelmann", "Immelmann (sticks back + R3)", {VK_XBUTTON1}},
+        {"split_s", "Split S", {'3'}},
+        {"snap_turn", "Snap Turn", {'4'}},
+        {"power_climb", "Power Climb", {'5'}},
+        {"back_stall_loop", "Back Stall Loop", {'6'}},
+        {"yo_yo", "High-Speed Yo-Yo", {'7'}},
+        {"snap_roll_left", "Snap Roll Left", {'T'}},
+        {"snap_roll_right", "Snap Roll Right", {'Y'}},
+        {"double_snap_left", "Double Snap Left", {'G'}},
+        {"double_snap_right", "Double Snap Right", {'H'}},
+        {"barrel_cw", "Barrel Roll (clockwise)", {'U'}},
+        {"barrel_ccw", "Barrel Roll (counter-cw)", {'I'}},
+        {"double_barrel_cw", "Double Barrel (clockwise)", {'J'}},
+        {"double_barrel_ccw", "Double Barrel (counter-cw)", {'K'}},
     };
 }
 
@@ -313,6 +362,35 @@ void Pad(int port, input::Pad& p) {
         if (now_ms - immelmann_since >= 100) p.buttons |= uint16_t(1u << 7);  // the click a moment after the sticks
     } else {
         immelmann_since = -1;
+    }
+
+    // the other maneuvers: a press starts the maneuver's stick moves, which then play out on their own
+    static const Maneuver* playing = nullptr;
+    static int64_t step_since = 0, started = 0;
+    static int step = 0;
+    static bool was_down[kActionCount] = {};
+    for (const Maneuver& m : kManeuvers) {
+        bool d = Down(m.action);
+        if (d && !was_down[m.action] && !playing) {
+            playing = &m;
+            step = 0;
+            step_since = started = now_ms;
+        }
+        was_down[m.action] = d;
+    }
+    while (playing) {
+        const Step& s = playing->steps[step];
+        int64_t t = now_ms - step_since;
+        if (t < s.ms || (s.hold && Down(playing->action))) {
+            p.lx = Axis(s.lx);
+            p.ly = Axis(s.ly);
+            p.rx = Axis(s.rx);
+            p.ry = Axis(s.ry);
+            if (now_ms - started < 100) p.buttons |= uint16_t(1u << 7);  // R3 clicked as the sticks move
+            break;
+        }
+        step_since = s.hold ? now_ms : step_since + s.ms;  // a held step ends now, at the key's release
+        if (++step >= playing->count) playing = nullptr;
     }
 
     // A B X Y black white LT RT

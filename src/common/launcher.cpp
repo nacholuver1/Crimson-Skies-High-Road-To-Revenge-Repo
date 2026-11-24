@@ -332,7 +332,7 @@ const char* Note(int row) {
         case kHud: return "On wide screens: Fit keeps the HUD and menus in shape, centered. Stretch fills the width.";
         case kFpsCounter: return "Frame rate in the corner. F2 shows or hides it in game.";
         case kDevice: return "Auto: both work, and the controller only vibrates when you used it last.";
-        case kBindings: return "Enter or a click: choose the keys and mouse buttons for every control.";
+        case kBindings: return "Enter or a click: choose the keys for every control, and one for each aerial maneuver.";
         case kMouseMode: return "Right stick: a quick mouse move down does the Immelmann. Ctrl (rebindable) holds it.";
         case kMouse: return "How far moving the mouse pushes the stick.";
         case kMousePitch: return "With the mouse on the left stick: moving it up and down pitches the nose too.";

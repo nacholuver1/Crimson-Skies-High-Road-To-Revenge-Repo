@@ -109,6 +109,13 @@ Keyboard and mouse (change any of these in the launcher's Key bindings page)
   Shift          boost                        Space          brake
   V, middle mouse  R3 (right stick click)     1 / 2 / Z / X / C  A / X / black / white / L3
   Mouse 4        Immelmann (both sticks back + R3)
+  Aerial maneuvers, one key each (they click R3 and make the stick moves for you):
+    3            Split S                      4              Snap Turn
+    5            Power Climb                  6              Back Stall Loop
+    7            High-Speed Yo-Yo
+    T / Y        Snap Roll left / right       G / H          Double Snap left / right
+    U / I        Barrel Roll clockwise / counter-clockwise
+    J / K        Double Barrel clockwise / counter-clockwise
   Ctrl (hold)    the mouse moves the right stick
   Arrows         D-pad                        Esc            pause (START)
   Enter / Backspace  menu accept / back       Tab            BACK
