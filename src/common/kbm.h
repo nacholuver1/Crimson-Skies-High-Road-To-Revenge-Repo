@@ -15,6 +15,7 @@ extern uint32_t g_mouse;    // mouse_sensitivity, percent
 enum MouseMode : uint32_t { kMouseOff = 0, kMouseLeft = 1, kMouseRight = 2 };
 extern uint32_t g_mouse_mode;  // mouse_mode: what moving the mouse does
 extern bool g_mouse_pitch;  // mouse_pitch: the mouse also pitches (up/down), not only turns
+extern uint32_t g_player;   // keyboard_player: the player (1-4) the keyboard and mouse fly as, for local multiplayer
 
 // the bindable actions, in the order the launcher lists them
 struct Action {
@@ -31,11 +32,12 @@ void Load(const void* table);
 void Save(void* table);
 // GameInfo::message: raw mouse motion, the hidden cursor kept in the window
 bool Message(void* hwnd, uint32_t msg, uintptr_t wp, intptr_t lp, intptr_t* result);
-// GameInfo::pad: player 1's controller with the keyboard and mouse added
+// GameInfo::pad: the keyboard player's controller with the keyboard and mouse added
 void Pad(int port, input::Pad& pad);
 // GameInfo::ui, inside the ImGui frame: stops ImGui from bringing the hidden cursor back
 void Ui();
-// true while a controller's rumble should stay off: keyboard and mouse chosen, or last used in Auto
-bool MuteRumble();
+// true while the controller on port (0-3) should not rumble: it is the keyboard player's and the keyboard and mouse
+// are chosen, or were used last in Auto
+bool MuteRumble(int port);
 
 }  // namespace kbm

@@ -22,7 +22,7 @@ bool Message(void* hwnd, uint32_t msg, uintptr_t wp, intptr_t lp, intptr_t* resu
     return fps_overlay::Message(hwnd, msg, wp, lp, result) || kbm::Message(hwnd, msg, wp, lp, result);
 }
 
-// each polled pad: keyboard and mouse added to player 1, then the trigger rumble reads what is held
+// each polled pad: keyboard and mouse added to their player, then the trigger rumble reads what is held
 void Pad(int port, input::Pad& pad) {
     kbm::Pad(port, pad);
     feedback::Pad(port, pad);
@@ -36,7 +36,7 @@ void Ui(double fps) {
 
 // each rumble the game sets: none while the keyboard and mouse are in use, else the stronger crashes and triggers
 void Rumble(int port, uint16_t& left, uint16_t& right) {
-    if (kbm::MuteRumble()) {
+    if (kbm::MuteRumble(port)) {
         left = right = 0;
         return;
     }
@@ -65,7 +65,8 @@ const app::GameInfo app::kGame = {
                 {"input_device", nullptr, &kbm::g_device},        // 0 auto, 1 controller, 2 keyboard and mouse
                 {"mouse_mode", nullptr, &kbm::g_mouse_mode},      // 0 off, 1 left stick, 2 right stick
                 {"mouse_sensitivity", nullptr, &kbm::g_mouse},    // percent
-                {"mouse_pitch", &kbm::g_mouse_pitch, nullptr}},   // the mouse pitches as well as turns                 // field of view, percent of the original
+                {"mouse_pitch", &kbm::g_mouse_pitch, nullptr},    // the mouse pitches as well as turns
+                {"keyboard_player", nullptr, &kbm::g_player}},    // 1-4: the player the keyboard and mouse fly as, 2-4 for local multiplayer
     .load = kbm::Load,                      // reads more from the settings file's toml::table
     .save = kbm::Save,                      // writes more into it
     .init = Startup,                      // after the settings load, before the window and boot

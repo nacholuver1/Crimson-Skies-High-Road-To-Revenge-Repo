@@ -175,13 +175,14 @@ const Choice kFps[] = {{30, "30 (original)"}, {60, "60"}, {120, "120"}, {144, "1
 const Choice kFovs[] = {{80, "80%"}, {90, "90%"}, {100, "100% (original)"}, {110, "110%"}, {120, "120%"}, {130, "130%"}};
 const Choice kSways[] = {{0, "Off"}, {25, "25%"}, {50, "50%"}, {75, "75%"}, {100, "100% (original)"}};
 const Choice kDevices[] = {{0, "Auto"}, {1, "Controller"}, {2, "Keyboard and mouse"}};
+const Choice kKeyPlayers[] = {{1, "Player 1"}, {2, "Player 2"}, {3, "Player 3"}, {4, "Player 4"}};
 const Choice kMouseModes[] = {{0, "Off"}, {1, "Left stick (steer)"}, {2, "Right stick (roll, maneuvers)"}};
 const Choice kMice[] = {{50, "50%"}, {75, "75%"}, {100, "100%"}, {150, "150%"}, {200, "200%"}, {300, "300%"}};
 const Choice kLanguages[] = {{1, "English"}, {3, "German (text and voices)"}, {4, "French (text and voices)"},
                              {7, "Korean (text)"}, {8, "Chinese, traditional (text)"}};
 const Choice kAudio[] = {{0, "Automatic"}, {1, "Stereo"}, {2, "5.1 surround"}, {3, "Mono"}};
 
-enum Row { kStart, kGame, kUpdate, kDisplayMode, kResolution, kRenderRes, kAntiAlias, kFiltering, kVideoUpscale, kVsync, kFrameRate, kFov, kHud, kSway, kFpsCounter, kDevice, kBindings, kMouseMode, kMouse, kMousePitch, kTriggers, kCrash,
+enum Row { kStart, kGame, kUpdate, kDisplayMode, kResolution, kRenderRes, kAntiAlias, kFiltering, kVideoUpscale, kVsync, kFrameRate, kFov, kHud, kSway, kFpsCounter, kDevice, kKeyPlayer, kBindings, kMouseMode, kMouse, kMousePitch, kTriggers, kCrash,
            kAudioOut, kLanguage, kLauncherAtStart, kQuit, kRows };
 
 template <size_t N>
@@ -279,6 +280,7 @@ const char* Label(int row) {
         case kSway: return "Camera sway";
         case kFpsCounter: return "FPS counter";
         case kDevice: return "Input device";
+        case kKeyPlayer: return "Keyboard player";
         case kBindings: return "Key bindings";
         case kMouseMode: return "Mouse moves";
         case kMouse: return "Mouse sensitivity";
@@ -332,6 +334,7 @@ const char* Note(int row) {
         case kHud: return "On wide screens: Fit keeps the HUD and menus in shape, centered. Stretch fills the width.";
         case kFpsCounter: return "Frame rate in the corner. F2 shows or hides it in game.";
         case kDevice: return "Auto: both work, and the controller only vibrates when you used it last.";
+        case kKeyPlayer: return "Local multiplayer: Player 2 puts the keyboard and mouse beside controller 1 (player 1).";
         case kBindings: return "Enter or a click: choose the keys for every control, and one for each aerial maneuver.";
         case kMouseMode: return "Right stick: a quick mouse move down does the Immelmann. Ctrl (rebindable) holds it.";
         case kMouse: return "How far moving the mouse pushes the stick.";
@@ -386,6 +389,7 @@ std::string Value(int row) {
         case kHud: return s.fit_hud ? "Fit" : "Stretch";
         case kFpsCounter: return fps_overlay::g_show ? "On" : "Off";
         case kDevice: return kDevices[IndexOf(kDevices, kbm::g_device)].label;
+        case kKeyPlayer: return kKeyPlayers[IndexOf(kKeyPlayers, kbm::g_player)].label;
         case kMouseMode: return kMouseModes[IndexOf(kMouseModes, kbm::g_mouse_mode)].label;
         case kMouse: return kMice[IndexOf(kMice, kbm::g_mouse ? kbm::g_mouse : 100)].label;
         case kMousePitch: return kbm::g_mouse_pitch ? "On" : "Off";
@@ -419,6 +423,7 @@ void Change(int row, int d) {
         case kHud: s.fit_hud = !s.fit_hud; break;
         case kFpsCounter: fps_overlay::g_show = !fps_overlay::g_show; break;
         case kDevice: kbm::g_device = Step(kDevices, kbm::g_device, d); break;
+        case kKeyPlayer: kbm::g_player = Step(kKeyPlayers, kbm::g_player, d); break;
         case kMouseMode: kbm::g_mouse_mode = Step(kMouseModes, kbm::g_mouse_mode, d); break;
         case kMouse: kbm::g_mouse = Step(kMice, kbm::g_mouse ? kbm::g_mouse : 100, d); break;
         case kMousePitch: kbm::g_mouse_pitch = !kbm::g_mouse_pitch; break;

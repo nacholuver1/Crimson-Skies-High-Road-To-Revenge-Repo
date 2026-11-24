@@ -72,6 +72,8 @@ Settings (saved to settings.toml next to the program; the launcher writes it)
                               shape and layout, centered. Stretch: drawn across the width.
   Input device                Auto: keyboard, mouse and controller all work, and the controller only
                               vibrates when you used it last. Or Controller only, or Keyboard and mouse.
+  Keyboard player             the player the keyboard and mouse fly as. Player 2 plays split-screen
+                              against controller 1; with 3 controllers, use Player 4.
   Key bindings                every keyboard and mouse control: pick one, press the new key
   Mouse moves                 Off (the keys steer), Left stick (steer) or Right stick (roll, speed and
                               the maneuvers); holding Ctrl puts the mouse on the right stick any time

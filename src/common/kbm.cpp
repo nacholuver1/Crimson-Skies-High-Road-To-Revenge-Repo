@@ -1,5 +1,7 @@
-// Keyboard and mouse as player 1's controller. The game only reads controllers, so the keys and the mouse are added to
-// what port 1 reports (or make up a controller when none is plugged in); a real controller keeps working alongside.
+// Keyboard and mouse as a player's controller (keyboard_player, player 1 by default). The game only reads controllers,
+// so the keys and the mouse are added to what that port reports (or make up a controller when none is plugged in); a
+// real controller on the same port keeps working alongside. Player 2 to 4 is for local multiplayer: one person on the
+// keyboard, the others on controllers 1, 2 and so on.
 //
 // The game's flight actions (its InputMap): steer on the left stick, speed (up/down) and roll (left/right) on the right
 // stick, primary fire RT, secondary LT, boost Y, brake B, the rest on A, X, black, white and the stick clicks.
@@ -30,6 +32,7 @@ uint32_t g_device = kAuto;
 uint32_t g_mouse = 100;
 uint32_t g_mouse_mode = kMouseOff;  // off: the keys steer, the mouse buttons fire
 bool g_mouse_pitch = false;
+uint32_t g_player = 1;
 
 namespace {
 
@@ -140,6 +143,7 @@ int64_t NowMs() {
 }
 
 bool On() { return g_device != kController; }
+int Port() { return int(std::clamp(g_player, 1u, 4u)) - 1; }
 
 bool Front() {
     HWND w = static_cast<HWND>(app::Window());
@@ -314,7 +318,7 @@ static bool was_down[kActionCount] = {};
 void Pad(int port, input::Pad& p) {
     using namespace std::chrono;
     static auto last = steady_clock::now();
-    if (port != 0) return;
+    if (port != Port()) return;
     int64_t now_ms = NowMs();
     if (PadActive(p)) g_pad_used = now_ms;
     if (!On()) return;
@@ -422,7 +426,8 @@ void Ui() {
     else io.ConfigFlags &= ~ImGuiConfigFlags_NoMouseCursorChange;
 }
 
-bool MuteRumble() {
+bool MuteRumble(int port) {
+    if (port != Port()) return false;  // another player's controller
     if (g_device == kKeyboardMouse) return true;
     if (g_device == kController) return false;
     return g_kbm_used.load() > g_pad_used.load();
