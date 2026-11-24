@@ -57,6 +57,8 @@ foreach ($item in "xbe_recomp.exe", "clang.exe", "lld-link.exe", "LLVM-LICENSE.t
     Copy-Item (Join-Path $compiler $item) (Join-Path $stage "compiler") -Recurse
 }
 Copy-Item (Join-Path $root "release\README.txt") $stage
+# RecompLauncher's setup and settings: read from the release, next to CrimsonSkies.exe
+Copy-Item (Join-Path $root "recomplauncher.json") $stage
 Set-Content -Path (Join-Path $stage "assets\PUT YOUR GAME HERE.txt") -Encoding ascii -Value @(
     "Optional: put your own Crimson Skies: High Road to Revenge (Xbox, USA) disc image (.iso) or the extracted disc",
     "files (default.xbe beside its folders) here. Or pick your game in the launcher's Game row instead. See README.txt.")

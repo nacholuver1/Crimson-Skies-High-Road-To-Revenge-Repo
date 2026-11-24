@@ -1,5 +1,7 @@
 # Crimson Skies: High Road to Revenge — native PC recompilation
 
+<a href="https://recomplauncher.com"><picture><source media="(prefers-color-scheme: dark)" srcset="https://recomplauncher.com/assets/press/launcher/badge-light.svg"><img alt="Get it on RecompLauncher" src="https://recomplauncher.com/assets/press/launcher/badge-dark.svg" height="48"></picture></a>
+
 An unofficial native Windows port of **Crimson Skies: High Road to Revenge** (original Xbox, 2003), made by
 *static recompilation* with [Xbox XBE Recomp](https://github.com/TGP482/XboxXBERecomp): the game's x86 code is
 translated ahead of time into a normal x64 program, with the Xbox kernel, Direct3D 8, DirectSound and input

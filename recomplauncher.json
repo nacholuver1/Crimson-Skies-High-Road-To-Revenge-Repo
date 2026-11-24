@@ -1,0 +1,292 @@
+{
+  "$schema": "https://recomplauncher.com/schema/recomplauncher.json",
+  "format": 1,
+  "name": "Crimson Skies: High Road to Revenge",
+  "repo": "nacholuver1/Crimson-Skies-High-Road-To-Revenge-Repo",
+  "inputs": [
+    {
+      "id": "game",
+      "label": "Your Crimson Skies: High Road to Revenge disc for the original Xbox, USA retail (MS-033): its disc image (.iso, a full dump or an xiso), or the folder with its extracted files and default.xbe.",
+      "formats": [{ "type": "file", "extensions": ["iso"] }, { "type": "folder" }],
+      "check": { "file": "AX_Boss.bin", "xdvdfs": "AX_Boss.bin" }
+    }
+  ],
+  "start": {
+    "program": ["CrimsonSkies.exe"],
+    "args": ["--no-launcher", "--no-update-check", "--game={input:game}"]
+  },
+  "system": {
+    "windows": { "version": "10", "graphics": { "d3d12": "11_0" } }
+  },
+  "saves": ["{install}/hdd/E/UDATA"],
+  "config": [
+    { "id": "main", "format": "toml", "file": [{ "path": "{install}/settings.toml" }] }
+  ],
+  "folders": {
+    "saves": [{ "path": "{install}/hdd/E/UDATA" }],
+    "logs": [{ "path": "{install}/logs" }]
+  },
+  "actions": [
+    { "id": "saves", "label": "Saves", "help": "Your campaign saves and the game's own options.", "open": "saves" },
+    { "id": "logs", "label": "Logs", "help": "The log of each run, for bug reports.", "open": "logs" }
+  ],
+  "groups": [{ "id": "Cheats", "advanced": true }],
+  "settings": [
+    {
+      "id": "display_mode", "label": "Display mode", "group": "Display",
+      "help": "Borderless fills your screen and switches apps quickly. Fullscreen takes the screen over. Windowed uses Resolution as the window size.",
+      "choices": [
+        { "label": "Borderless", "set": { "display_mode": "\"borderless\"" } },
+        { "label": "Fullscreen", "set": { "display_mode": "\"fullscreen\"" } },
+        { "label": "Windowed", "set": { "display_mode": "\"windowed\"" } }
+      ],
+      "defaults": { "display_mode": "\"borderless\"" }
+    },
+    {
+      "id": "resolution", "label": "Resolution", "group": "Display",
+      "help": "The output size. Desktop uses your screen's own. Wide and ultrawide sizes widen the 3D view to fit.",
+      "choices": [
+        { "label": "Desktop", "set": { "width": "0", "height": "0" } },
+        { "label": "1280 x 720", "set": { "width": "1280", "height": "720" } },
+        { "label": "1600 x 900", "set": { "width": "1600", "height": "900" } },
+        { "label": "1920 x 1080", "set": { "width": "1920", "height": "1080" } },
+        { "label": "2560 x 1080", "set": { "width": "2560", "height": "1080" } },
+        { "label": "2560 x 1440", "set": { "width": "2560", "height": "1440" } },
+        { "label": "3440 x 1440", "set": { "width": "3440", "height": "1440" } },
+        { "label": "3840 x 1600", "set": { "width": "3840", "height": "1600" } },
+        { "label": "3840 x 2160", "set": { "width": "3840", "height": "2160" } },
+        { "label": "5120 x 1440", "set": { "width": "5120", "height": "1440" } }
+      ],
+      "defaults": { "width": "0", "height": "0" }
+    },
+    {
+      "id": "render_percent", "label": "Render resolution", "group": "Display",
+      "help": "Of the output's height. Above 100% draws bigger and averages down (supersampling): sharper, and harder on the graphics card.",
+      "choices": [
+        { "label": "50%", "set": { "render_percent": "50" } },
+        { "label": "75%", "set": { "render_percent": "75" } },
+        { "label": "100% (native)", "set": { "render_percent": "100" } },
+        { "label": "150%", "set": { "render_percent": "150" } },
+        { "label": "200%", "set": { "render_percent": "200" } },
+        { "label": "300%", "set": { "render_percent": "300" } }
+      ],
+      "defaults": { "render_percent": "100" }
+    },
+    {
+      "id": "game_fps", "label": "Frame rate", "group": "Display",
+      "help": "30 is the original. Set it to your screen's refresh rate: the game's speed stays right at any of them.",
+      "choices": [
+        { "label": "30 (original)", "set": { "game_fps": "30" } },
+        { "label": "60", "set": { "game_fps": "60" } },
+        { "label": "120", "set": { "game_fps": "120" } },
+        { "label": "144", "set": { "game_fps": "144" } },
+        { "label": "165", "set": { "game_fps": "165" } },
+        { "label": "240", "set": { "game_fps": "240" } }
+      ],
+      "defaults": { "game_fps": "60" }
+    },
+    {
+      "id": "vsync", "label": "V-Sync", "group": "Display",
+      "help": "Waits for the screen's refresh, so the picture doesn't tear.",
+      "choices": [
+        { "label": "On", "set": { "vsync": "true" } },
+        { "label": "Off", "set": { "vsync": "false" } }
+      ],
+      "defaults": { "vsync": "true" }
+    },
+    {
+      "id": "fxaa", "label": "Anti-aliasing", "group": "Graphics",
+      "help": "FXAA smooths jagged edges on the final picture.",
+      "choices": [
+        { "label": "Off", "set": { "fxaa": "false" } },
+        { "label": "FXAA", "set": { "fxaa": "true" } }
+      ],
+      "defaults": { "fxaa": "false" }
+    },
+    {
+      "id": "anisotropic_filtering", "label": "Texture filtering", "group": "Graphics",
+      "help": "Keeps the ground and water sharp at shallow angles.",
+      "choices": [
+        { "label": "Game default", "set": { "anisotropic_filtering": "0" } },
+        { "label": "2x", "set": { "anisotropic_filtering": "2" } },
+        { "label": "4x", "set": { "anisotropic_filtering": "4" } },
+        { "label": "8x", "set": { "anisotropic_filtering": "8" } },
+        { "label": "16x", "set": { "anisotropic_filtering": "16" } }
+      ],
+      "defaults": { "anisotropic_filtering": "0" }
+    },
+    {
+      "id": "upscale_videos", "label": "Video upscaling", "group": "Graphics",
+      "help": "Cutscenes and stills: smoother upscaling and deinterlacing instead of a plain stretch.",
+      "choices": [
+        { "label": "On", "set": { "upscale_videos": "true" } },
+        { "label": "Off", "set": { "upscale_videos": "false" } }
+      ],
+      "defaults": { "upscale_videos": "true" }
+    },
+    {
+      "id": "fov", "label": "Field of view", "group": "Graphics",
+      "help": "Of the original view. Wider can help with motion sickness.",
+      "choices": [
+        { "label": "80%", "set": { "fov": "80" } },
+        { "label": "90%", "set": { "fov": "90" } },
+        { "label": "100% (original)", "set": { "fov": "100" } },
+        { "label": "110%", "set": { "fov": "110" } },
+        { "label": "120%", "set": { "fov": "120" } },
+        { "label": "130%", "set": { "fov": "130" } }
+      ],
+      "defaults": { "fov": "100" }
+    },
+    {
+      "id": "fit_hud", "label": "HUD", "group": "Graphics",
+      "help": "Fit keeps the HUD and menus in their original shape, centered, on a wide screen. Stretch draws them across the width.",
+      "choices": [
+        { "label": "Fit", "set": { "fit_hud": "true" } },
+        { "label": "Stretch", "set": { "fit_hud": "false" } }
+      ],
+      "defaults": { "fit_hud": "true" }
+    },
+    {
+      "id": "camera_sway", "label": "Camera sway", "group": "Graphics",
+      "help": "The camera's turbulence sway. Lower it, or turn it off, if the motion makes you feel sick.",
+      "choices": [
+        { "label": "Off", "set": { "camera_sway": "0" } },
+        { "label": "25%", "set": { "camera_sway": "25" } },
+        { "label": "50%", "set": { "camera_sway": "50" } },
+        { "label": "75%", "set": { "camera_sway": "75" } },
+        { "label": "100% (original)", "set": { "camera_sway": "100" } }
+      ],
+      "defaults": { "camera_sway": "100" }
+    },
+    {
+      "id": "show_fps", "label": "FPS counter", "group": "Graphics",
+      "help": "The frame rate in a corner of the game. F2 shows or hides it while you play.",
+      "choices": [
+        { "label": "Off", "set": { "show_fps": "false" } },
+        { "label": "On", "set": { "show_fps": "true" } }
+      ],
+      "defaults": { "show_fps": "false" }
+    },
+    {
+      "id": "input_device", "label": "Input device", "group": "Controls",
+      "help": "Auto: keyboard, mouse and controller all work, and the controller only vibrates when you used it last.",
+      "choices": [
+        { "label": "Auto", "set": { "input_device": "0" } },
+        { "label": "Controller", "set": { "input_device": "1" } },
+        { "label": "Keyboard and mouse", "set": { "input_device": "2" } }
+      ],
+      "defaults": { "input_device": "0" }
+    },
+    {
+      "id": "keyboard_player", "label": "Keyboard player", "group": "Controls",
+      "help": "The player the keyboard and mouse fly as. Player 2 plays split-screen against controller 1.",
+      "choices": [
+        { "label": "Player 1", "set": { "keyboard_player": "1" } },
+        { "label": "Player 2", "set": { "keyboard_player": "2" } },
+        { "label": "Player 3", "set": { "keyboard_player": "3" } },
+        { "label": "Player 4", "set": { "keyboard_player": "4" } }
+      ],
+      "defaults": { "keyboard_player": "1" }
+    },
+    {
+      "id": "mouse_mode", "label": "Mouse moves", "group": "Controls",
+      "help": "Off: the keys steer and the mouse fires. Holding Ctrl puts the mouse on the right stick any time.",
+      "choices": [
+        { "label": "Off", "set": { "mouse_mode": "0" } },
+        { "label": "Left stick (steer)", "set": { "mouse_mode": "1" } },
+        { "label": "Right stick (roll, maneuvers)", "set": { "mouse_mode": "2" } }
+      ],
+      "defaults": { "mouse_mode": "0" }
+    },
+    {
+      "id": "mouse_sensitivity", "label": "Mouse sensitivity", "group": "Controls",
+      "help": "How far the mouse pushes the stick.",
+      "choices": [
+        { "label": "50%", "set": { "mouse_sensitivity": "50" } },
+        { "label": "75%", "set": { "mouse_sensitivity": "75" } },
+        { "label": "100%", "set": { "mouse_sensitivity": "100" } },
+        { "label": "150%", "set": { "mouse_sensitivity": "150" } },
+        { "label": "200%", "set": { "mouse_sensitivity": "200" } },
+        { "label": "300%", "set": { "mouse_sensitivity": "300" } }
+      ],
+      "defaults": { "mouse_sensitivity": "100" }
+    },
+    {
+      "id": "impulse_triggers", "label": "Impulse triggers", "group": "Controls",
+      "help": "The trigger motors rumble with the game, on controllers that have them.",
+      "choices": [
+        { "label": "On", "set": { "impulse_triggers": "true" } },
+        { "label": "Off", "set": { "impulse_triggers": "false" } }
+      ],
+      "defaults": { "impulse_triggers": "true" }
+    },
+    {
+      "id": "crash_rumble", "label": "Crash rumble", "group": "Controls",
+      "help": "Collisions rumble harder and fade out.",
+      "choices": [
+        { "label": "On", "set": { "crash_rumble": "true" } },
+        { "label": "Off", "set": { "crash_rumble": "false" } }
+      ],
+      "defaults": { "crash_rumble": "true" }
+    },
+    {
+      "id": "audio_output", "label": "Audio output", "group": "Sound and language",
+      "help": "Automatic follows your Windows speaker setup.",
+      "choices": [
+        { "label": "Automatic", "set": { "audio_output": "0" } },
+        { "label": "Stereo", "set": { "audio_output": "1" } },
+        { "label": "5.1 surround", "set": { "audio_output": "2" } },
+        { "label": "Mono", "set": { "audio_output": "3" } }
+      ],
+      "defaults": { "audio_output": "0" }
+    },
+    {
+      "id": "language", "label": "Language", "group": "Sound and language",
+      "help": "The USA disc has English, German and French text and voices, and Korean and Chinese text.",
+      "choices": [
+        { "label": "English", "set": { "language": "1" } },
+        { "label": "German", "set": { "language": "3" } },
+        { "label": "French", "set": { "language": "4" } },
+        { "label": "Korean (text)", "set": { "language": "7" } },
+        { "label": "Chinese, traditional (text)", "set": { "language": "8" } }
+      ],
+      "defaults": { "language": "1" }
+    },
+    {
+      "id": "cheat_health", "label": "Invincible", "group": "Cheats",
+      "help": "The game's own god cheat, at every spawn.",
+      "choices": [
+        { "label": "Off", "set": { "cheat_health": "false" } },
+        { "label": "On", "set": { "cheat_health": "true" } }
+      ],
+      "defaults": { "cheat_health": "false" }
+    },
+    {
+      "id": "cheat_ammo", "label": "Unlimited secondary ammo", "group": "Cheats",
+      "help": "Secondary weapons stay full.",
+      "choices": [
+        { "label": "Off", "set": { "cheat_ammo": "false" } },
+        { "label": "On", "set": { "cheat_ammo": "true" } }
+      ],
+      "defaults": { "cheat_ammo": "false" }
+    },
+    {
+      "id": "cheat_boost", "label": "Unlimited boost", "group": "Cheats",
+      "help": "The afterburner never runs out.",
+      "choices": [
+        { "label": "Off", "set": { "cheat_boost": "false" } },
+        { "label": "On", "set": { "cheat_boost": "true" } }
+      ],
+      "defaults": { "cheat_boost": "false" }
+    },
+    {
+      "id": "cheat_planes", "label": "All planes", "group": "Cheats",
+      "help": "Every plane unlocked while it's on. Your save isn't changed.",
+      "choices": [
+        { "label": "Off", "set": { "cheat_planes": "false" } },
+        { "label": "On", "set": { "cheat_planes": "true" } }
+      ],
+      "defaults": { "cheat_planes": "false" }
+    }
+  ]
+}
