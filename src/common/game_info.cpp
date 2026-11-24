@@ -9,10 +9,42 @@
 #include "widescreen.h"
 
 #include <cstdlib>
+#include <string>
+
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#include <shellapi.h>
+#pragma comment(lib, "shell32.lib")
 
 namespace {
+// --game <path> or --game=<path>: the game for this run (a disc image, or the folder with default.xbe), for
+// launchers and shortcuts. It takes game_path's place; without it nothing changes.
+void GameArgument() {
+    int argc = 0;
+    wchar_t** argv = CommandLineToArgvW(GetCommandLineW(), &argc);
+    if (!argv) return;
+    std::wstring path;
+    for (int i = 1; i < argc; i++) {
+        std::wstring a = argv[i];
+        if (a == L"--game" && i + 1 < argc) path = argv[++i];
+        else if (a.rfind(L"--game=", 0) == 0) path = a.substr(7);
+    }
+    LocalFree(argv);
+    if (path.empty()) return;
+    int n = WideCharToMultiByte(CP_UTF8, 0, path.c_str(), int(path.size()), nullptr, 0, nullptr, nullptr);
+    std::string utf8(n, '\0');
+    WideCharToMultiByte(CP_UTF8, 0, path.c_str(), int(path.size()), utf8.data(), n, nullptr, nullptr);
+    app::Get().game_path = utf8;
+}
+
 // the launcher first, which may change any setting; then what depends on the settings
 void Startup() {
+    GameArgument();
     updater::Cleanup();  // what an update left: the previous version's files
     if (launcher::Wanted() && !launcher::Run()) std::exit(0);
     frame_rate::Init();

@@ -20,6 +20,8 @@
 
 #include <atomic>
 #include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <filesystem>
 #include <fstream>
 #include <functional>
@@ -420,6 +422,8 @@ void Cleanup() {
 
 void StartCheck() {
     if (std::wcsstr(GetCommandLineW(), L"--no-update-check")) return;
+    // started by RecompLauncher, which installs the releases itself: two updaters on one folder would fight
+    if (const char* rl = std::getenv("RECOMPLAUNCHER"); rl && std::strcmp(rl, "1") == 0) return;
     State s = g_state;
     if (s == State::Checking || s == State::Downloading || s == State::Installing || s == State::Ready) return;
     g_state = State::Checking;
