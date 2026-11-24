@@ -316,3 +316,17 @@ call = "Widescreen_Scale"
 [[hook]]
 at = 0xD41B2
 call = "FrameRate_ViewSway"
+
+# cheats (src/common/cheats.cpp): the god flag at a player's spawn, the players' secondary ammo and boost in each
+# plane's boost update, and the plane-unlock variables as getVar returns them
+[[hook]]
+at = 0xA5CED
+call = "Cheats_God"
+
+[[hook]]
+at = 0xD4253
+call = "Cheats_Plane"
+
+[[hook]]
+at = 0x4388C
+call = "Cheats_GetVar"

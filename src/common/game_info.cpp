@@ -1,4 +1,5 @@
 #include "app/app.h"
+#include "cheats.h"
 #include "feedback.h"
 #include "fps_overlay.h"
 #include "frame_rate.h"
@@ -66,7 +67,11 @@ const app::GameInfo app::kGame = {
                 {"mouse_mode", nullptr, &kbm::g_mouse_mode},      // 0 off, 1 left stick, 2 right stick
                 {"mouse_sensitivity", nullptr, &kbm::g_mouse},    // percent
                 {"mouse_pitch", &kbm::g_mouse_pitch, nullptr},    // the mouse pitches as well as turns
-                {"keyboard_player", nullptr, &kbm::g_player}},    // 1-4: the player the keyboard and mouse fly as, 2-4 for local multiplayer
+                {"keyboard_player", nullptr, &kbm::g_player},     // 1-4: the player the keyboard and mouse fly as, 2-4 for local multiplayer
+                {"cheat_health", &cheats::g_health, nullptr},     // the game's god cheat at every spawn
+                {"cheat_ammo", &cheats::g_ammo, nullptr},         // secondary weapons stay full
+                {"cheat_boost", &cheats::g_boost, nullptr},       // boost never runs out
+                {"cheat_planes", &cheats::g_planes, nullptr}},    // every plane unlocked (not saved)
     .load = kbm::Load,                      // reads more from the settings file's toml::table
     .save = kbm::Save,                      // writes more into it
     .init = Startup,                      // after the settings load, before the window and boot

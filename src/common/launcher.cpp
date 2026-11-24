@@ -35,6 +35,7 @@
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND, UINT, WPARAM, LPARAM);
 
 #include "app/app.h"
+#include "cheats.h"
 #include "feedback.h"
 #include "fps_overlay.h"
 #include "frame_rate.h"
@@ -183,7 +184,7 @@ const Choice kLanguages[] = {{1, "English"}, {3, "German (text and voices)"}, {4
 const Choice kAudio[] = {{0, "Automatic"}, {1, "Stereo"}, {2, "5.1 surround"}, {3, "Mono"}};
 
 enum Row { kStart, kGame, kUpdate, kDisplayMode, kResolution, kRenderRes, kAntiAlias, kFiltering, kVideoUpscale, kVsync, kFrameRate, kFov, kHud, kSway, kFpsCounter, kDevice, kKeyPlayer, kBindings, kMouseMode, kMouse, kMousePitch, kTriggers, kCrash,
-           kAudioOut, kLanguage, kLauncherAtStart, kQuit, kRows };
+           kCheatHealth, kCheatAmmo, kCheatBoost, kCheatPlanes, kAudioOut, kLanguage, kLauncherAtStart, kQuit, kRows };
 
 template <size_t N>
 int IndexOf(const Choice (&c)[N], uint32_t v) {
@@ -287,6 +288,10 @@ const char* Label(int row) {
         case kMousePitch: return "Mouse pitch";
         case kTriggers: return "Trigger rumble";
         case kCrash: return "Crash rumble";
+        case kCheatHealth: return "Cheat: unlimited health";
+        case kCheatAmmo: return "Cheat: unlimited ammo";
+        case kCheatBoost: return "Cheat: unlimited boost";
+        case kCheatPlanes: return "Cheat: all planes";
         case kAudioOut: return "Audio output";
         case kLanguage: return "Language";
         case kLauncherAtStart: return "Launcher at startup";
@@ -341,6 +346,10 @@ const char* Note(int row) {
         case kMousePitch: return "With the mouse on the left stick: moving it up and down pitches the nose too.";
         case kTriggers: return "Xbox One / Series controllers: the triggers vibrate with the guns, afterburner and crashes.";
         case kCrash: return "Makes crashes a strong jolt; the game's own crash rumble is very short.";
+        case kCheatHealth: return "The game's own god cheat, on from the next time you spawn.";
+        case kCheatAmmo: return "Your secondary weapon (rockets and the like) never runs out.";
+        case kCheatBoost: return "Your afterburner never runs out.";
+        case kCheatPlanes: return "Every plane unlocked. Saving still works, and your save keeps its own unlocks.";
         case kAudioOut: return "Automatic follows your Windows speaker setup.";
         case kLanguage: return "The game's language. Korean and Chinese have English voices.";
         case kLauncherAtStart: return "Off starts the game directly. Back on: launcher = true in settings.toml.";
@@ -395,6 +404,10 @@ std::string Value(int row) {
         case kMousePitch: return kbm::g_mouse_pitch ? "On" : "Off";
         case kTriggers: return feedback::g_triggers ? "On" : "Off";
         case kCrash: return feedback::g_crash ? "Stronger" : "Original";
+        case kCheatHealth: return cheats::g_health ? "On" : "Off";
+        case kCheatAmmo: return cheats::g_ammo ? "On" : "Off";
+        case kCheatBoost: return cheats::g_boost ? "On" : "Off";
+        case kCheatPlanes: return cheats::g_planes ? "On" : "Off";
         case kAudioOut: return kAudio[IndexOf(kAudio, s.audio_output)].label;
         case kLanguage: return kLanguages[IndexOf(kLanguages, s.language)].label;
         case kLauncherAtStart: return g_show ? "On" : "Off";
@@ -429,6 +442,10 @@ void Change(int row, int d) {
         case kMousePitch: kbm::g_mouse_pitch = !kbm::g_mouse_pitch; break;
         case kTriggers: feedback::g_triggers = !feedback::g_triggers; break;
         case kCrash: feedback::g_crash = !feedback::g_crash; break;
+        case kCheatHealth: cheats::g_health = !cheats::g_health; break;
+        case kCheatAmmo: cheats::g_ammo = !cheats::g_ammo; break;
+        case kCheatBoost: cheats::g_boost = !cheats::g_boost; break;
+        case kCheatPlanes: cheats::g_planes = !cheats::g_planes; break;
         case kAudioOut: s.audio_output = Step(kAudio, s.audio_output, d); break;
         case kLanguage: s.language = Step(kLanguages, s.language, d); break;
         case kLauncherAtStart: g_show = !g_show; break;
