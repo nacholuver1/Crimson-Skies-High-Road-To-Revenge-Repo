@@ -245,6 +245,15 @@ freeze in the play sessions since (campaign, 30, 60 and 144 fps).
 (The capture that showed the broken section came from the **Demos** menu item's freeze, which then pointed at this
 general bug.)
 
+## Boost shimmer double image: fixed (issue #8, 2026-11-23, v1.9.3)
+
+| Symptom | Cause | Fix | How it was found |
+|---|---|---|---|
+| Boosting while turning shows a second copy of the plane's tail and wings | The lens is a pretransformed quad drawn back over the plane; HUD fit narrowed it toward the screen centre (x 0.75 at 16:9), but the copy it samples (a 256x256 render target) was not narrowed | SDK `HudFit`: skip draws that sample a render target | F3 capture: plane position in the 256x256 copy vs on screen |
+| The boost blur keeps parts of earlier frames | Draw blends the back buffer (LIN_X8R8G8B8) into the 256x256 copy with the back buffer's alpha as weight; X8 must read alpha 1, the host BGRA8 target kept stale alpha | SDK `BindTargetTexture`: force SRV alpha 1 for X1R5G5B5, R5G6B5, X8R8G8B8 | F3 capture; a test clear colour showed the blend weight varied per pixel |
+
+The 256x256 copy lives at the depth buffer's address (0x01A3E000); colour and depth are separate host resources here, but with alpha 1 the copy is fully replaced each frame, so no aliasing emulation is needed. The shimmer is a programmable pixel shader (bumpenv mode 6 on stage 1, no COLORSIGN). The fixed-function bump env op and signed bump filtering were added in the same release but are not exercised by it.
+
 ## Demos menu (known issue)
 
 **Demos** launches `d:\cdx.xbe`, Microsoft's demo launcher (title "CDX", XDK 5659 with XACT, `XSNDTRK`): trailers
