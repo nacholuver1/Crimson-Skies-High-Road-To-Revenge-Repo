@@ -330,3 +330,9 @@ call = "Cheats_Plane"
 [[hook]]
 at = 0x4388C
 call = "Cheats_GetVar"
+
+# the money and tokens cheats drop the game's writes to them (src/common/cheats.cpp)
+[[hook]]
+at = 0x43890
+call = "Cheats_SetVar"
+on_true = "ret"

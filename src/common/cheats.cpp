@@ -21,8 +21,23 @@
 //   plane select screen reads). Not for the cheat test at 0x1E420 (all gx_All*Unlocked): when it sees one set it
 //   skips the save (0x24942, 0x264E2), so it keeps seeing the real values and saving works. The save file is
 //   written from the variable map itself (0x43BCC), so the unlock never reaches it: turning it off relocks.
+// - Money and tokens: the hangar's money is g_Player0Score and its upgrade tokens g_Player0UpgradeTokens (the
+//   retail codes "addvar" 5000 and 10 to them). getVar answers the game's own caps for them, "999999" (0x293B74)
+//   and "999" (0x293B70), the most setVar (0x43890: thiscall, name in [esp+4], value string in [esp+8], ret 0x08)
+//   ever stores. A hook at setVar's entry drops the writes made from those answers: the ones whose caller is in
+//   the function (within 0x200 bytes after the call) that recently read the cap of that variable (the last 8
+//   such readers are kept). That is how
+//   spending is done: the hangar reads both at 0x1056C4/0x1056E1, subtracts the cost and writes them at
+//   0x10570F/0x10572B; the console's addvar (0x21760, also what the scripts' "add to variable" runs) reads at
+//   0x2179B and writes at 0x217E5. Every other write goes through, above all the loaders, which set each stored
+//   value without reading it first (the profile's "name=value" lines at 0x44175, the records at 0x7A1C0): a
+//   cheat that drops those leaves 0 behind the cap, and the game saves the profile on its own (it did, on load).
+//   The variable manager's own code (0x43000-0x45000: defaults, carry-over copies) also reads the real amounts.
+//   So buying, repairing and gambling cost nothing and the save keeps the real amounts; what is earned while
+//   the cheat is on is not kept.
 #include "cheats.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <cstring>
 
@@ -34,6 +49,8 @@ bool g_health = false;
 bool g_ammo = false;
 bool g_boost = false;
 bool g_planes = false;
+bool g_money = false;
+bool g_tokens = false;
 }  // namespace cheats
 
 namespace {
@@ -98,14 +115,46 @@ void Cheats_Plane(X86Context& ctx, uint8_t* base) {
     }
 }
 
+// the variable manager's own code (load, defaults, carry-over): it reads the real money and tokens
+// per variable (1 money, 2 tokens): the return addresses of the last getVars that answered the cap (0 none), so a
+// read elsewhere between a spending read and its write doesn't hide it
+constexpr int kReaders = 8;
+static uint32_t g_cap_reader[3][kReaders];
+static int g_cap_next[3];
+
+static bool Manager(uint32_t caller) { return caller >= 0x43000 && caller < 0x45000; }
+
+// the variable a money or tokens cheat stands in for: 1 money, 2 tokens, 0 neither (or that cheat is off)
+static int MoneyVar(const uint8_t* s) {
+    if (cheats::g_money && Match(s, "g_Player0Score", true)) return 1;
+    if (cheats::g_tokens && Match(s, "g_Player0UpgradeTokens", true)) return 2;
+    return 0;
+}
+
 // at "ret 0x04" (0x4388C) of getVar (0x43830): [esp] = the caller, [esp+4] = the name, eax = the value string
 void Cheats_GetVar(X86Context& ctx, uint8_t* base) {
-    if (!cheats::g_planes) return;
+    if (!cheats::g_planes && !cheats::g_money && !cheats::g_tokens) return;
     uint32_t caller = Read32(base, ctx.esp);
-    if (caller >= 0x1E420 && caller < 0x1E480) return;  // the cheat test that turns saving off
     uint32_t name = Read32(base, ctx.esp + 4);
     if (!name) return;
     const uint8_t* s = base + name;
+    if (int m = MoneyVar(s); m && !Manager(caller)) {
+        static bool logged[3];
+        if (!logged[m]) {
+            logged[m] = true;
+            LOGR("Cheats: %s read as %s (was \"%.12s\", caller %08X)", m == 1 ? "money" : "tokens",
+                 m == 1 ? "999999" : "999", reinterpret_cast<const char*>(base + ctx.eax), caller);
+        }
+        ctx.eax = m == 1 ? 0x293B74 : 0x293B70;  // "999999", "999": the caps setVar stores at most
+        uint32_t* r = g_cap_reader[m];
+        if (std::find(r, r + kReaders, caller) == r + kReaders) {  // newest replaces the oldest
+            r[g_cap_next[m]] = caller;
+            g_cap_next[m] = (g_cap_next[m] + 1) % kReaders;
+        }
+        return;
+    }
+    if (!cheats::g_planes) return;
+    if (caller >= 0x1E420 && caller < 0x1E480) return;  // the cheat test that turns saving off
     if (Match(s, "g_PF_", false) || Match(s, "gx_AllSpPlanesUnlocked", true)) {
         static int logged = 0;
         if (logged < 16) {
@@ -115,4 +164,25 @@ void Cheats_GetVar(X86Context& ctx, uint8_t* base) {
         }
         ctx.eax = 0x292D40;  // "1"
     }
+}
+
+// at setVar's entry (0x43890): [esp] = the caller, [esp+4] = the name, [esp+8] = the value string; true returns
+// without the write
+bool Cheats_SetVar(X86Context& ctx, uint8_t* base) {
+    if (!cheats::g_money && !cheats::g_tokens) return false;
+    uint32_t name = Read32(base, ctx.esp + 4), value = Read32(base, ctx.esp + 8);
+    if (!name || !value) return false;
+    int m = MoneyVar(base + name);
+    if (!m) return false;
+    uint32_t caller = Read32(base, ctx.esp), reader = 0;
+    for (uint32_t r : g_cap_reader[m])  // the same function read the cap just before: the nearest such read
+        if (r && caller > r && caller - r < 0x200 && caller - r < caller - reader) reader = r;
+    bool from_cap = reader != 0;
+    static int logged = 0;
+    if (logged < 16) {
+        logged++;
+        LOGR("Cheats: %s write \"%.12s\" %s (caller %08X, cap read at %08X)", m == 1 ? "money" : "tokens",
+             reinterpret_cast<const char*>(base + value), from_cap ? "dropped" : "kept", caller, reader);
+    }
+    return from_cap;
 }

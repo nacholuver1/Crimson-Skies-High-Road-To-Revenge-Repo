@@ -287,6 +287,24 @@
         { "label": "On", "set": { "cheat_planes": "true" } }
       ],
       "defaults": { "cheat_planes": "false" }
+    },
+    {
+      "id": "cheat_money", "label": "Unlimited money", "group": "Cheats",
+      "help": "999,999 money and buying costs nothing. Your save keeps its real money; money earned while it's on isn't kept.",
+      "choices": [
+        { "label": "Off", "set": { "cheat_money": "false" } },
+        { "label": "On", "set": { "cheat_money": "true" } }
+      ],
+      "defaults": { "cheat_money": "false" }
+    },
+    {
+      "id": "cheat_tokens", "label": "Unlimited upgrade tokens", "group": "Cheats",
+      "help": "999 upgrade tokens and upgrades cost none. Your save keeps its real tokens; tokens earned while it's on aren't kept.",
+      "choices": [
+        { "label": "Off", "set": { "cheat_tokens": "false" } },
+        { "label": "On", "set": { "cheat_tokens": "true" } }
+      ],
+      "defaults": { "cheat_tokens": "false" }
     }
   ]
 }

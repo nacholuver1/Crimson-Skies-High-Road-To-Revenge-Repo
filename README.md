@@ -74,7 +74,7 @@ texture filtering, video upscaling, vsync, frame rate, FPS counter, trigger and 
 | `mouse_sensitivity`, `mouse_pitch` | how far the mouse pushes the stick; on the left stick, whether it pitches too |
 | `impulse_triggers` | Xbox One / Series trigger motors follow the guns, afterburner and crashes (on by default) |
 | `crash_rumble` | crashes held and faded into a strong jolt; false keeps the game's very short one (on by default) |
-| `cheat_health`, `cheat_ammo`, `cheat_boost`, `cheat_planes` | cheats, all off by default: the game's own god cheat at every spawn; your secondary weapon never runs out; your boost never runs out; every plane unlocked (the hangar's planes and the plane select). The plane unlock isn't written to your save, and saving still works with it on. |
+| `cheat_health`, `cheat_ammo`, `cheat_boost`, `cheat_planes`, `cheat_money`, `cheat_tokens` | cheats, all off by default: the game's own god cheat at every spawn; your secondary weapon never runs out; your boost never runs out; every plane unlocked (the hangar's planes and the plane select); 999,999 money and 999 upgrade tokens, with buying and upgrades costing nothing. None of them are written to your save, and saving still works with them on; money and tokens earned while those two are on aren't kept. |
 | `launcher` | false starts the game directly |
 | `check_updates` | the launcher asks GitHub for the latest release when it opens and offers a newer one in a popup (on by default); **Update now** downloads the win64 zip, checks its SHA-256 against the one GitHub lists, moves the new files over the old ones and restarts. Settings, saves and the game are not in the zip, so they stay. |
 

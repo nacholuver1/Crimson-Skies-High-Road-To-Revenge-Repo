@@ -93,6 +93,9 @@ Settings (saved to settings.toml next to the program; the launcher writes it)
     unlimited ammo            your secondary weapon never runs out
     unlimited boost           your afterburner never runs out
     all planes                every plane unlocked; not written to your save, and saving still works
+    unlimited money           999,999 money and buying costs nothing; your save keeps its real money,
+                              and money earned while it's on isn't kept
+    unlimited tokens          999 upgrade tokens and upgrades cost none; same for your save
   Language                    English, German or French (text and voices), Korean or Chinese (text,
                               English voices)
   Launcher at startup         Off starts the game directly (launcher = true in settings.toml brings it back)

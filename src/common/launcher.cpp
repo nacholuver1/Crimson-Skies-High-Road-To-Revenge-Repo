@@ -184,7 +184,7 @@ const Choice kLanguages[] = {{1, "English"}, {3, "German (text and voices)"}, {4
 const Choice kAudio[] = {{0, "Automatic"}, {1, "Stereo"}, {2, "5.1 surround"}, {3, "Mono"}};
 
 enum Row { kStart, kGame, kUpdate, kDisplayMode, kResolution, kRenderRes, kAntiAlias, kFiltering, kVideoUpscale, kVsync, kFrameRate, kFov, kHud, kSway, kFpsCounter, kDevice, kKeyPlayer, kBindings, kMouseMode, kMouse, kMousePitch, kTriggers, kCrash,
-           kCheatHealth, kCheatAmmo, kCheatBoost, kCheatPlanes, kAudioOut, kLanguage, kLauncherAtStart, kQuit, kRows };
+           kCheatHealth, kCheatAmmo, kCheatBoost, kCheatPlanes, kCheatMoney, kCheatTokens, kAudioOut, kLanguage, kLauncherAtStart, kQuit, kRows };
 
 template <size_t N>
 int IndexOf(const Choice (&c)[N], uint32_t v) {
@@ -292,6 +292,8 @@ const char* Label(int row) {
         case kCheatAmmo: return "Cheat: unlimited ammo";
         case kCheatBoost: return "Cheat: unlimited boost";
         case kCheatPlanes: return "Cheat: all planes";
+        case kCheatMoney: return "Cheat: unlimited money";
+        case kCheatTokens: return "Cheat: unlimited tokens";
         case kAudioOut: return "Audio output";
         case kLanguage: return "Language";
         case kLauncherAtStart: return "Launcher at startup";
@@ -350,6 +352,8 @@ const char* Note(int row) {
         case kCheatAmmo: return "Your secondary weapon (rockets and the like) never runs out.";
         case kCheatBoost: return "Your afterburner never runs out.";
         case kCheatPlanes: return "Every plane unlocked. Saving still works, and your save keeps its own unlocks.";
+        case kCheatMoney: return "999,999 money and buying costs nothing. Your save keeps its real money.";
+        case kCheatTokens: return "999 upgrade tokens and upgrades cost none. Your save keeps its real tokens.";
         case kAudioOut: return "Automatic follows your Windows speaker setup.";
         case kLanguage: return "The game's language. Korean and Chinese have English voices.";
         case kLauncherAtStart: return "Off starts the game directly. Back on: launcher = true in settings.toml.";
@@ -408,6 +412,8 @@ std::string Value(int row) {
         case kCheatAmmo: return cheats::g_ammo ? "On" : "Off";
         case kCheatBoost: return cheats::g_boost ? "On" : "Off";
         case kCheatPlanes: return cheats::g_planes ? "On" : "Off";
+        case kCheatMoney: return cheats::g_money ? "On" : "Off";
+        case kCheatTokens: return cheats::g_tokens ? "On" : "Off";
         case kAudioOut: return kAudio[IndexOf(kAudio, s.audio_output)].label;
         case kLanguage: return kLanguages[IndexOf(kLanguages, s.language)].label;
         case kLauncherAtStart: return g_show ? "On" : "Off";
@@ -446,6 +452,8 @@ void Change(int row, int d) {
         case kCheatAmmo: cheats::g_ammo = !cheats::g_ammo; break;
         case kCheatBoost: cheats::g_boost = !cheats::g_boost; break;
         case kCheatPlanes: cheats::g_planes = !cheats::g_planes; break;
+        case kCheatMoney: cheats::g_money = !cheats::g_money; break;
+        case kCheatTokens: cheats::g_tokens = !cheats::g_tokens; break;
         case kAudioOut: s.audio_output = Step(kAudio, s.audio_output, d); break;
         case kLanguage: s.language = Step(kLanguages, s.language, d); break;
         case kLauncherAtStart: g_show = !g_show; break;

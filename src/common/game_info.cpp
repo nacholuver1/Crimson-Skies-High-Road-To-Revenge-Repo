@@ -103,7 +103,9 @@ const app::GameInfo app::kGame = {
                 {"cheat_health", &cheats::g_health, nullptr},     // the game's god cheat at every spawn
                 {"cheat_ammo", &cheats::g_ammo, nullptr},         // secondary weapons stay full
                 {"cheat_boost", &cheats::g_boost, nullptr},       // boost never runs out
-                {"cheat_planes", &cheats::g_planes, nullptr}},    // every plane unlocked (not saved)
+                {"cheat_planes", &cheats::g_planes, nullptr},     // every plane unlocked (not saved)
+                {"cheat_money", &cheats::g_money, nullptr},       // 999,999 money, spending costs nothing (not saved)
+                {"cheat_tokens", &cheats::g_tokens, nullptr}},    // 999 upgrade tokens, upgrades cost none (not saved)
     .load = kbm::Load,                      // reads more from the settings file's toml::table
     .save = kbm::Save,                      // writes more into it
     .init = Startup,                      // after the settings load, before the window and boot
