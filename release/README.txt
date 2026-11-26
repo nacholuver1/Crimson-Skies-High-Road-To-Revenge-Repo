@@ -142,6 +142,9 @@ Known issues
     translated: the game stops on its error screen. Restart the program.
   - The game was made for 30 fps. Higher frame rates were tested through the campaign without problems, but if
     something feels too fast or slow, set the frame rate to 30 and report it.
+  - The game restarts itself between the menus and each level (the Xbox rebooted there too), so the NVIDIA app
+    shows its "Press Alt+Z" overlay notice each time, at the Pandora hub for example. Turn the notice off in the
+    NVIDIA app's settings (notifications for the in-game overlay).
 
 Reporting a problem
   Open an issue on the project's GitHub page and attach the newest file from logs\ (and from CrashDumps\ if it
