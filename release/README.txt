@@ -78,6 +78,8 @@ Settings (saved to settings.toml next to the program; the launcher writes it)
                               game's own, at any resolution (see "Texture packs" below). "On, save the
                               game's textures" also writes each texture the game uses to textures\dumps\.
   Video upscaling             cutscenes and stills: bicubic upscaling and deinterlacing instead of a plain stretch
+  AI cutscenes                optional: upscales the 60 cutscenes with AI on your PC, once (see "AI cutscenes"
+                              below). When they are made, On (default) or Off.
   Frame rate                  30 (the original) to 240. Set it to your monitor's refresh rate. The game's speed
                               stays right at any of them.
   Camera sway                 the camera's turbulence sway: lower it, or turn it off, if the motion makes you
@@ -127,16 +129,31 @@ Texture packs (HD textures, a sharper HUD and menus)
   To use someone else's pack, unzip it into textures\replacement\. Packs hold the game's own images,
   edited: share them only as far as the game's rights allow.
 
+AI cutscenes (sharper movies)
+  The game's cutscenes are 640x480. On the AI cutscenes row, Enter makes a 1280x960 copy of each one with
+  Real-ESRGAN, an AI upscaler, on your own graphics card:
+  1. It downloads Real-ESRGAN (45 MB) and FFmpeg (119 MB) from GitHub into the tools folder; each file is checked
+     against its known SHA-256 first.
+  2. It upscales the 60 cutscenes into movies\ai\ (about 0.9 GB). On a recent graphics card that takes about an
+     hour; you need about 8 GB of free disk space while it runs, and a graphics driver with Vulkan.
+  The launcher shows how far it is. Enter again, or starting the game, stops it; the cutscenes made so far are
+  kept, and the next time it carries on. The game plays a made cutscene with its original sound and timing, and
+  the original picture for any it doesn't have. Delete movies\ai\ and tools\ to remove them. In RecompLauncher,
+  tick "AI-upscaled cutscenes" when you set the game up (or under Set Up Again).
+  Command line: CrimsonSkies.exe --ai-movies [--game <your game>] does the same without a window.
+
 Command-line options
   --no-launcher   start the game directly this once
   --launcher      show the launcher even when it is turned off
   --no-update-check  no update check this time
+  --ai-movies     make the AI cutscenes (see above), then exit
 
 Everything stays in this folder
   assets\        your game, if you put it here instead of picking it in the launcher
   compiler\      the translator, and in compiler\work\ the game's translated code (safe to delete; rebuilt)
   CrimsonSkies.dll  the translated game code, built on first start
   textures\      texture packs (replacement\) and saved game textures (dumps\), when you use them
+  movies\ai\     the AI cutscenes, when you make them; tools\ the upscaler and FFmpeg they were made with
   hdd\           the Xbox hard disk: saves (hdd\E\UDATA) and the game's cache (hdd\Z)
   settings.toml  settings
   logs\          a log of each run
@@ -183,4 +200,7 @@ Credits and licenses
   follows crazyriddler's patches for this game in xbased; the menu text fix follows the diagnosis in xemu issue
   #2902 and its fix by abaire; the launcher's design is adapted from darkuni's MIT-licensed recomp menus. See the licenses
   folder. The Steam Deck steps follow StealthRook's and ROCraiderny's notes in issue #2.
+  AI cutscenes are made with Real-ESRGAN by Xintao Wang et al. (https://github.com/xinntao/Real-ESRGAN, BSD-3-Clause
+  models; its ncnn Vulkan program is MIT, built on Tencent's ncnn, BSD-3-Clause) and FFmpeg (https://ffmpeg.org,
+  Gyan Doshi's Windows build), downloaded on your request and not part of this release.
   Crimson Skies is a trademark of Microsoft; this project is not affiliated with or endorsed by Microsoft.

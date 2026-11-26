@@ -1,4 +1,5 @@
 #include "app/app.h"
+#include "ai_movies.h"
 #include "cheats.h"
 #include "feedback.h"
 #include "fps_overlay.h"
@@ -45,6 +46,7 @@ void GameArgument() {
 // the launcher first, which may change any setting; then what depends on the settings
 void Startup() {
     GameArgument();
+    if (ai_movies::Wanted()) std::exit(ai_movies::Run());  // the setup step (AI cutscenes) alone, no game
     updater::Cleanup();  // what an update left: the previous version's files
     if (launcher::Wanted() && !launcher::Run()) std::exit(0);
     frame_rate::Init();

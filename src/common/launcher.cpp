@@ -8,6 +8,7 @@
 // keyboard, mouse or controller. Drawn with Dear ImGui on Direct3D 11 in a window of its own, gone before the game's
 // opens. The device and window setup follow Dear ImGui's example_win32_directx11 (MIT License).
 #include "launcher.h"
+#include "ai_movies.h"
 #include "kbm.h"
 #include "updater.h"
 #include "widescreen.h"
@@ -184,7 +185,7 @@ const Choice kLanguages[] = {{1, "English"}, {3, "German (text and voices)"}, {4
                              {7, "Korean (text)"}, {8, "Chinese, traditional (text)"}};
 const Choice kAudio[] = {{0, "Automatic"}, {1, "Stereo"}, {2, "5.1 surround"}, {3, "Mono"}};
 
-enum Row { kStart, kGame, kUpdate, kDisplayMode, kResolution, kAspect, kRenderRes, kAntiAlias, kUpscaler, kSharpen, kFiltering, kTextures, kVideoUpscale, kVsync, kFrameRate, kFov, kHud, kSway, kFpsCounter, kDevice, kKeyPlayer, kBindings, kMouseMode, kMouse, kMousePitch, kTriggers, kCrash,
+enum Row { kStart, kGame, kUpdate, kDisplayMode, kResolution, kAspect, kRenderRes, kAntiAlias, kUpscaler, kSharpen, kFiltering, kTextures, kVideoUpscale, kAiMovies, kVsync, kFrameRate, kFov, kHud, kSway, kFpsCounter, kDevice, kKeyPlayer, kBindings, kMouseMode, kMouse, kMousePitch, kTriggers, kCrash,
            kCheatHealth, kCheatAmmo, kCheatBoost, kCheatPlanes, kCheatMoney, kCheatTokens, kAudioOut, kLanguage, kLauncherAtStart, kReset, kQuit, kRows };
 
 template <size_t N>
@@ -223,6 +224,25 @@ void ProbeGame() {
 }
 
 bool GameReady() { return g_game.probe != app::GameProbe::Missing; }
+
+// the AI cutscenes row: made counted again for another game and after each run of the step
+struct AiState {
+    bool running = false, complete = false;
+    int made = 0, total = 0;
+};
+AiState Ai() {
+    static std::filesystem::path counted;
+    static bool was_running = true, ever = false;
+    static ai_movies::Status status;
+    bool running = ai_movies::Running();
+    if (!ever || counted != g_game.path || (was_running && !running)) {
+        ever = true;
+        counted = g_game.path;
+        status = GameReady() ? ai_movies::Check() : ai_movies::Status{};
+    }
+    was_running = running;
+    return {running, status.total > 0 && status.made == status.total, status.made, status.total};
+}
 
 // a file dialog for the disc image or the extracted game's default.xbe; true when a game was picked
 bool BrowseGame() {
@@ -280,6 +300,7 @@ const char* Label(int row) {
         case kFiltering: return "Texture filtering";
         case kTextures: return "Texture pack";
         case kVideoUpscale: return "Video upscaling";
+        case kAiMovies: return "AI cutscenes";
         case kVsync: return "VSync";
         case kFrameRate: return "Frame rate";
         case kFov: return "Field of view";
@@ -345,6 +366,15 @@ const char* Note(int row) {
         case kFiltering: return "Anisotropic filtering: sharper textures at an angle, like the ground below you.";
         case kTextures: return "Images in textures\\replacement replace the game's. Save writes the game's to textures\\dumps.";
         case kVideoUpscale: return "Cutscenes and stills: bicubic upscaling and deinterlacing instead of a plain stretch.";
+        case kAiMovies: {
+            static std::string note;  // the returned pointer outlives this frame's call
+            AiState st = Ai();
+            if (st.running) note = ai_movies::Message() + "   Enter stops; what is made stays.";
+            else if (st.complete) note = "The cutscenes upscaled by AI (Real-ESRGAN, 2x) on your PC instead of the originals.";
+            else if (ai_movies::Failed()) note = ai_movies::Message() + "   Enter carries on.";
+            else note = "Optional. Enter: downloads Real-ESRGAN and FFmpeg (165 MB), then upscales the 60 cutscenes on your graphics card (about an hour).";
+            return note.c_str();
+        }
         case kVsync: return "Wait for the monitor's refresh. Off can tear.";
         case kFrameRate: return "The game was made for 30. Higher is smoother; set it to your monitor's refresh.";
         case kSway: return "The camera's turbulence sway. Lower it if the motion makes you feel sick.";
@@ -413,6 +443,19 @@ std::string Value(int row) {
         case kFiltering: return kAniso[IndexOf(kAniso, s.aniso)].label;
         case kTextures: return !s.custom_textures ? "Off" : s.dump_textures ? "On, save the game's textures" : "On";
         case kVideoUpscale: return s.upscale_videos ? "On" : "Off";
+        case kAiMovies: {
+            AiState st = Ai();
+            if (st.running) {
+                std::snprintf(b, sizeof b, "Making... %d%%", int(ai_movies::Progress() * 100));
+                return b;
+            }
+            if (st.complete) return s.ai_movies ? "On" : "Off";
+            if (st.total == 0) return "Needs the game";
+            if (ai_movies::Failed()) return "Stopped - carry on";
+            if (st.made == 0) return "Make (about an hour)";
+            std::snprintf(b, sizeof b, "Make the rest (%d of %d made)", st.made, st.total);
+            return b;
+        }
         case kVsync: return s.vsync ? "On" : "Off";
         case kFrameRate: return kFps[IndexOf(kFps, frame_rate::Fps())].label;
         case kSway: return kSways[IndexOf(kSways, std::min(frame_rate::g_sway, 100u))].label;
@@ -464,6 +507,10 @@ void Change(int row, int d) {
             break;
         }
         case kVideoUpscale: s.upscale_videos = !s.upscale_videos; break;
+        case kAiMovies:
+            if (!Ai().complete) return;  // a toggle once the cutscenes are made
+            s.ai_movies = !s.ai_movies;
+            break;
         case kVsync: s.vsync = !s.vsync; break;
         case kFrameRate: frame_rate::g_fps = Step(kFps, frame_rate::Fps(), d); break;
         case kSway: frame_rate::g_sway = Step(kSways, std::min(frame_rate::g_sway, 100u), d); break;
@@ -493,6 +540,14 @@ void Change(int row, int d) {
         default: return;
     }
     app::Save();
+}
+
+// Enter or a click on AI cutscenes: stop a run, else make what is missing, else switch them on or off
+void AiAction() {
+    AiState st = Ai();
+    if (st.running) ai_movies::Stop();
+    else if (st.complete) Change(kAiMovies, 1);
+    else if (st.total) ai_movies::Start();
 }
 
 bool HasOption(int row) { return row != kStart && row != kGame && row != kQuit && row != kBindings && row != kReset; }
@@ -773,11 +828,12 @@ Result Draw(int& sel, float scale) {
         if (hover && (io.MouseDelta.x != 0 || io.MouseDelta.y != 0)) sel = r;
         if (r == sel) DrawHighlight(dl, a, b, fs, scale);
         float ty = a.y + (row_h - fs) / 2;
-        bool action = r == kStart || r == kGame || r == kQuit || r == kBindings || r == kUpdate || r == kReset;
+        bool action = r == kStart || r == kGame || r == kQuit || r == kBindings || r == kUpdate || r == kReset ||
+                      r == kAiMovies;
         ImU32 col = r == kStart ? (GameReady() ? kGold : kGrey) : r == sel ? kWhite : kGrey;
         dl->AddText(ImVec2(p0.x + pad, ty), r == kStart && r == sel ? kWhite : col, Label(r));
         if (HasOption(r) || r == kGame || r == kBindings || (r == kReset && g_reset_armed)) {
-            std::string v = r == kBindings ? std::string(">") : r == sel && r != kGame && r != kReset ? "<  " + Value(r) + "  >" : Value(r);
+            std::string v = r == kBindings ? std::string(">") : r == sel && r != kGame && r != kReset && (r != kAiMovies || Ai().complete) ? "<  " + Value(r) + "  >" : Value(r);
             float vw = ImGui::CalcTextSize(v.c_str()).x;
             ImU32 vc = r == kGame && g_game.probe != app::GameProbe::Match ? kAccent
                        : r == kUpdate && updater::GetState() == updater::State::Available ? kGold
@@ -801,10 +857,13 @@ Result Draw(int& sel, float scale) {
         else if (sel == kQuit) result = Result::Quit;
         else if (sel == kBindings) OpenBindings();
         else if (sel == kUpdate) UpdateAction();
+        else if (sel == kAiMovies) AiAction();
         else if (sel == kReset && !g_reset_armed) g_reset_armed = true;
         else if (sel == kReset) ResetSettings();
         else Change(sel, 1);
     }
+    // starting the game or leaving stops the cutscene step: the game would share the graphics card with it
+    if (result != Result::Pending && ai_movies::Running()) ai_movies::Stop();
     // an update being written must finish first; once in place the launcher closes and the new version starts
     updater::State us = updater::GetState();
     if (us == updater::State::Installing && result != Result::Pending) result = Result::Pending;

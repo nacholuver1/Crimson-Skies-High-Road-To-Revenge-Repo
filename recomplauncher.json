@@ -15,6 +15,20 @@
     "program": ["CrimsonSkies.exe"],
     "args": ["--no-launcher", "--no-update-check", "--game={input:game}"]
   },
+  "prepare": {
+    "program": ["CrimsonSkies.exe"],
+    "args": ["--prepare", "--no-launcher", "--no-update-check", "--game={input:game}"],
+    "label": "AI cutscenes",
+    "options": [
+      {
+        "id": "ai_cutscenes",
+        "label": "AI-upscaled cutscenes",
+        "note": "Downloads Real-ESRGAN and FFmpeg (165 MB) and upscales the 60 cutscenes on your graphics card: about an hour.",
+        "args": ["--ai-movies"],
+        "default": false
+      }
+    ]
+  },
   "system": {
     "windows": { "version": "10", "graphics": { "d3d12": "11_0" } }
   },
@@ -155,6 +169,15 @@
         { "label": "Off", "set": { "upscale_videos": "false" } }
       ],
       "defaults": { "upscale_videos": "true" }
+    },
+    {
+      "id": "ai_movies", "label": "AI cutscenes", "group": "Graphics",
+      "help": "The cutscenes upscaled by AI on your PC (turn on AI-upscaled cutscenes under Set Up Again to make them) instead of the originals.",
+      "choices": [
+        { "label": "On", "set": { "ai_movies": "true" } },
+        { "label": "Off", "set": { "ai_movies": "false" } }
+      ],
+      "defaults": { "ai_movies": "true" }
     },
     {
       "id": "fov", "label": "Field of view", "group": "Graphics",

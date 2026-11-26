@@ -384,6 +384,49 @@ void Install() {
 
 }  // namespace
 
+bool Download(const std::string& url, const fs::path& to, const std::string& sha256,
+              const std::function<void(uint64_t, uint64_t)>& progress, std::string& err) {
+    std::error_code ec;
+    fs::create_directories(to.parent_path(), ec);
+    fs::path part = to;
+    part += ".part";
+    Sha256 hash;
+    bool ok;
+    {
+        std::ofstream out(part, std::ios::binary | std::ios::trunc);
+        uint64_t got = 0;
+        ok = out && Get(Wide(url), [&](const char* p, size_t n, uint64_t total) {
+            out.write(p, std::streamsize(n));
+            hash.Add(p, n);
+            got += n;
+            if (progress) progress(got, total);
+            return bool(out);
+        }, err);
+    }
+    if (ok && hash.Hex() != sha256) {
+        err = "the download is damaged (checksum differs)";
+        ok = false;
+    }
+    if (ok) fs::rename(part, to, ec);
+    if (!ok || ec) {
+        if (ok) err = "could not save " + to.filename().string();
+        fs::remove(part, ec);
+        return false;
+    }
+    return true;
+}
+
+bool Unpack(const fs::path& zip, const fs::path& dir, const std::wstring& only) {
+    wchar_t sys[MAX_PATH] = L"C:\\Windows\\System32";
+    GetSystemDirectoryW(sys, MAX_PATH);
+    std::error_code ec;
+    fs::create_directories(dir, ec);
+    std::wstring cmd = L"\"" + (fs::path(sys) / "tar.exe").wstring() + L"\" -xf \"" + zip.wstring() + L"\" -C \"" +
+                       dir.wstring() + L"\"";
+    if (!only.empty()) cmd += L" \"" + only + L"\"";
+    return Run(cmd);
+}
+
 const char* Version() { return CS_VERSION; }
 
 void Cleanup() {
