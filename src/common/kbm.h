@@ -39,5 +39,8 @@ void Ui();
 // true while the controller on port (0-3) should not rumble: it is the keyboard player's and the keyboard and mouse
 // are chosen, or were used last in Auto
 bool MuteRumble(int port);
+// the plane hook (0xD4253), each frame for each human player's plane: true while a first move plays (the game decides
+// on its follow-up, the double or loop part, from the sticks until it ends); the "hold" maneuver keys hold till then
+void PlaneManeuver(bool waiting);
 
 }  // namespace kbm

@@ -7,7 +7,9 @@
 //
 // - Health: the god flag is read when a player spawns (0xA5CED; with it on, the spawn calls the unit's damage
 //   object's +0xD0/+0xD4 with 100). The hook sets the flag right before that test, so every spawn and respawn
-//   gets it, as if the god code had been entered.
+//   gets it, as if the god code had been entered. Those calls are SetHealth (unit vtable +0xD0, 0x95280: health at
+//   unit+0x160, clamped to min +0x164 and max +0x168) and SetMinHealth (+0xD4, 0x16D370), both with 100, so the
+//   health stayed at 100 of a much higher max; the plane hook below keeps min and health at the max instead.
 // - Ammo and boost: each plane's per-frame boost update (0xD4250, called from the plane's update at 0xD56E7) has
 //   the plane in esi. Its unit is at +0xB20; a human player's unit has a player controller at +0x7FC (an 0xC70-byte
 //   object made at 0x15C3B0; null for the AI). The unit's secondary weapon is at +0x730, its ammo at weapon+0x40
@@ -44,6 +46,7 @@
 
 #include "core/log.h"
 #include "cpu/x86_context.h"
+#include "kbm.h"
 
 namespace cheats {
 bool g_health = false;
@@ -88,10 +91,25 @@ void Cheats_God(X86Context& ctx, uint8_t* base) {
 
 // at 0xD4253 in the plane's boost update (0xD4250), after "mov esi, ecx": esi = the plane
 void Cheats_Plane(X86Context& ctx, uint8_t* base) {
-    if (!cheats::g_ammo && !cheats::g_boost) return;
     uint32_t plane = ctx.esi;
     uint32_t unit = plane ? Read32(base, plane + 0xB20) : 0;
     if (!unit || !Read32(base, unit + 0x7FC)) return;  // the AI's planes have no player controller
+    // the maneuver playing (+0xD68, index into the entries at +0xCE0, -1 none): in the first move's last
+    // ManeuverComboTime (0.5 s) the game re-checks the sticks every frame until the move ends (0xD501F), and a
+    // released stick swaps the queued follow-up ("RollRight_Right") for the plain finish ("RollRight_Default"). So the
+    // hold keys wait while a first move (an entry name with no '_', which follow-ups have) plays.
+    {
+        uint32_t i = Read32(base, plane + 0xD68), entry = 0;
+        if (int32_t(i) >= 0 && i < 64) entry = Read32(base, plane + 0xCE0 + i * 4);
+        bool first = false;
+        if (entry) {
+            first = true;
+            for (const uint8_t* s = base + entry; s < base + entry + 32 && *s; s++)  // the name is the entry's start
+                if (*s == '_') first = false;
+        }
+        kbm::PlaneManeuver(first);
+    }
+    if (!cheats::g_ammo && !cheats::g_boost && !cheats::g_health) return;
     static uint32_t logged = 0;
     if (logged != plane) {  // once per player plane (a new one each spawn)
         logged = plane;
@@ -101,6 +119,16 @@ void Cheats_Plane(X86Context& ctx, uint8_t* base) {
         std::memcpy(&most, base + plane + 0xC10, 4);
         LOGR("Cheats: player plane %08X unit %08X: secondary ammo %d of %d, boost used %.2f of %.2f s", plane, unit,
              weapon ? int32_t(Read32(base, weapon + 0x40)) : -2, int32_t(Read32(base, unit + 0x724)), used, most);
+    }
+    if (cheats::g_health) {
+        // the god cheat pins health at 100 (SetHealth then SetMinHealth with 100), but planes' max is far higher, so
+        // the HUD showed about 1%: keep the minimum and the health at the max instead (reported on r/recomps by
+        // Plenty_Group6674). Fields written directly: the setters would send a network event each frame.
+        uint32_t most = Read32(base, unit + 0x168);
+        if (int32_t(most) > 0) {
+            if (Read32(base, unit + 0x164) != most) Write32(base, unit + 0x164, most);
+            if (Read32(base, unit + 0x160) != most) Write32(base, unit + 0x160, most);
+        }
     }
     if (cheats::g_boost) {
         float zero = 0;

@@ -46,8 +46,9 @@ enum : int {
 
 // The maneuver keys play what the game reads as that maneuver: a click of the right stick (R3, the game only takes
 // maneuvers in a short window after it) and the stick moves (left stick, right stick; up is +1, down -1). A step with
-// hold set lasts as long as the key is held, at least ms; the others last exactly ms, so a "push" key held down
-// doesn't turn into the "hold" maneuver.
+// hold set lasts at least ms, as long as the key is held, and as long as the first move plays (the game picks the
+// follow-up, the double or loop part, from the sticks in its last 0.5 s, up to its very end; see PlaneManeuver), at
+// most kHoldMax; the others last exactly ms, so a "push" key held down doesn't turn into the "hold" maneuver.
 struct Step {
     int ms;
     bool hold;
@@ -58,16 +59,20 @@ struct Maneuver {
     Step steps[4];
     int count;
 };
-constexpr int kPush = 200, kHold = 700;
+// the "hold" maneuvers (double snaps, double barrels, back stall loop, yo-yo) fell back to the plain one when the key
+// was only tapped (reported on r/recomps by Plenty_Group6674): a fixed hold ended before the first move did, so a tap
+// now holds until the first move has ended. kHold covers the moment before
+// the first move starts.
+constexpr int kPush = 200, kHold = 400, kHoldMax = 5000;
 const Maneuver kManeuvers[] = {
     {kSplitS, {{kPush, false, 0, 1, 0, 1}}, 1},
     {kSnapTurn, {{kPush, false, 0, 1, 0, -1}}, 1},
     {kPowerClimb, {{kPush, false, 0, -1, 0, 1}}, 1},
     // hold the left stick down, push the right stick up, then push the left stick down again
-    {kBackStallLoop, {{kPush, false, 0, -1, 0, 1}, {500, true, 0, -1, 0, 0}, {150, false, 0, 0, 0, 0},
+    {kBackStallLoop, {{kPush, false, 0, -1, 0, 1}, {kHold, true, 0, -1, 0, 0}, {150, false, 0, 0, 0, 0},
                       {kPush, false, 0, -1, 0, 0}}, 4},
-    // the left stick down, then up as the nose rises, with the right stick up
-    {kYoYo, {{kPush, false, 0, -1, 0, 1}, {250, false, 0, 1, 0, 1}}, 2},
+    // the left stick down, then held up as the nose rises, with the right stick up
+    {kYoYo, {{kPush, false, 0, -1, 0, 1}, {kHold, true, 0, 1, 0, 1}}, 2},
     {kSnapRollLeft, {{kPush, false, -1, 0, -1, 0}}, 1},
     {kSnapRollRight, {{kPush, false, 1, 0, 1, 0}}, 1},
     {kDoubleSnapLeft, {{kHold, true, -1, 0, -1, 0}}, 1},
@@ -311,6 +316,17 @@ bool Message(void* hwnd, uint32_t msg, uintptr_t wp, intptr_t lp, intptr_t* resu
     }
 }
 
+// when a human player's plane last had a first move playing (ms, 0 never). One for all
+// players: in split-screen another player's move can stretch a hold, up to kHoldMax.
+static std::atomic<int64_t> g_waiting_ms{0};
+
+void PlaneManeuver(bool waiting) {
+    if (waiting) g_waiting_ms.store(NowMs(), std::memory_order_relaxed);
+}
+
+// the plane hook runs every frame (paused, it doesn't: the hold ends)
+static bool Waiting(int64_t now_ms) { return now_ms - g_waiting_ms.load(std::memory_order_relaxed) < 150; }
+
 // the maneuver being played, if any
 static const Maneuver* playing = nullptr;
 static int64_t step_since = 0, started = 0;
@@ -328,12 +344,16 @@ void Pad(int port, input::Pad& p) {
     float dt = std::min(duration<float>(now - last).count(), 0.1f);
     last = now;
     int dx = g_dx.exchange(0), dy = g_dy.exchange(0);
+    // the keyboard player's port stays plugged in while the window is in the background too (idle): the game asks to
+    // "reconnect the controller to port 1" the moment it reads the port empty, which for a keyboard-only player was
+    // every alt-tab, popup or relaunch whose new window didn't get the focus (reported on r/recomps by
+    // Plenty_Group6674)
+    p.connected = true;
     if (!Front()) {
         g_sx = g_sy = 0;
         playing = nullptr;  // a maneuver doesn't carry on after the window comes back
         return;
     }
-    p.connected = true;
     bool used = dx != 0 || dy != 0;
     for (int a = 0; a < kActionCount && !used; a++) used = Down(a);
     if (used) g_kbm_used = now_ms;
@@ -390,7 +410,7 @@ void Pad(int port, input::Pad& p) {
     while (playing) {
         const Step& s = playing->steps[step];
         int64_t t = now_ms - step_since;
-        if (t < s.ms || (s.hold && Down(playing->action))) {
+        if (t < s.ms || (s.hold && t < kHoldMax && (Down(playing->action) || Waiting(now_ms)))) {
             p.lx = Axis(s.lx);
             p.ly = Axis(s.ly);
             p.rx = Axis(s.rx);
