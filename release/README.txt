@@ -92,7 +92,8 @@ Settings (saved to settings.toml next to the program; the launcher writes it)
     unlimited health          the game's own god cheat, on from your next spawn
     unlimited ammo            your secondary weapon never runs out
     unlimited boost           your afterburner never runs out
-    all planes                every plane unlocked; not written to your save, and saving still works
+    all planes                every plane unlocked and upgradable; the unlocks aren't written to your
+                              save (upgrades you buy are), and saving still works
     unlimited money           999,999 money and buying costs nothing; your save keeps its real money,
                               and money earned while it's on isn't kept
     unlimited tokens          999 upgrade tokens and upgrades cost none; same for your save

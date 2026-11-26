@@ -17,7 +17,8 @@
 //   most. The hook tops up the ammo and clears the time used, for players' planes only.
 // - Planes: every game variable read goes through getVar (0x43830, thiscall, name in [esp+4], value string in
 //   eax at its ret 0x04 at 0x4388C). The hook answers "1" (0x292D40) for the story's plane-found flags (g_PF_*,
-//   what the retail cheat codes set) and for gx_AllSpPlanesUnlocked (the console's unlockspplanes, which the
+//   what the retail cheat codes set; 0 locked, 1 found, 2 upgraded, so only a 0 or missing value is raised and
+//   upgrades still work; an upgrade bought writes 2 and so does reach the save) and for gx_AllSpPlanesUnlocked (the console's unlockspplanes, which the
 //   plane select screen reads). Not for the cheat test at 0x1E420 (all gx_All*Unlocked): when it sees one set it
 //   skips the save (0x24942, 0x264E2), so it keeps seeing the real values and saving works. The save file is
 //   written from the variable map itself (0x43BCC), so the unlock never reaches it: turning it off relocks.
@@ -156,6 +157,12 @@ void Cheats_GetVar(X86Context& ctx, uint8_t* base) {
     if (!cheats::g_planes) return;
     if (caller >= 0x1E420 && caller < 0x1E480) return;  // the cheat test that turns saving off
     if (Match(s, "g_PF_", false) || Match(s, "gx_AllSpPlanesUnlocked", true)) {
+        // g_PF_* is 0 locked, 1 found, 2 upgraded (the hangar writes 2): raise only a locked or missing value, so
+        // upgrades still show and can be bought (reported on r/recomps by Plenty_Group6674)
+        if (ctx.eax) {
+            const uint8_t* v = base + ctx.eax;
+            if (v[0] && !(v[0] == '0' && v[1] == 0)) return;
+        }
         static int logged = 0;
         if (logged < 16) {
             logged++;

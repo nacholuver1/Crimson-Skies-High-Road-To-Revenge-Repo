@@ -351,7 +351,7 @@ const char* Note(int row) {
         case kCheatHealth: return "The game's own god cheat, on from the next time you spawn.";
         case kCheatAmmo: return "Your secondary weapon (rockets and the like) never runs out.";
         case kCheatBoost: return "Your afterburner never runs out.";
-        case kCheatPlanes: return "Every plane unlocked. Saving still works, and your save keeps its own unlocks.";
+        case kCheatPlanes: return "Every plane unlocked and upgradable. Your save keeps its own unlocks, plus any upgrades you buy.";
         case kCheatMoney: return "999,999 money and buying costs nothing. Your save keeps its real money.";
         case kCheatTokens: return "999 upgrade tokens and upgrades cost none. Your save keeps its real tokens.";
         case kAudioOut: return "Automatic follows your Windows speaker setup.";

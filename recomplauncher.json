@@ -281,7 +281,7 @@
     },
     {
       "id": "cheat_planes", "label": "All planes", "group": "Cheats",
-      "help": "Every plane unlocked while it's on. Your save isn't changed.",
+      "help": "Every plane unlocked and upgradable while it's on. Unlocks aren't saved; upgrades you buy are.",
       "choices": [
         { "label": "Off", "set": { "cheat_planes": "false" } },
         { "label": "On", "set": { "cheat_planes": "true" } }
