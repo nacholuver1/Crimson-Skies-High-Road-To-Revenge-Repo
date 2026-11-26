@@ -66,6 +66,9 @@ Settings (saved to settings.toml next to the program; the launcher writes it)
   Render resolution           of your screen's height; above 100% renders bigger and averages down (supersampling)
   Anti-aliasing               FXAA on the final image
   Texture filtering           anisotropic filtering, up to 16x
+  Texture pack                On (default): images in textures\replacement\ are drawn instead of the
+                              game's own, at any resolution (see "Texture packs" below). "On, save the
+                              game's textures" also writes each texture the game uses to textures\dumps\.
   Video upscaling             cutscenes and stills: bicubic upscaling and deinterlacing instead of a plain stretch
   Frame rate                  30 (the original) to 240. Set it to your monitor's refresh rate. The game's speed
                               stays right at any of them.
@@ -103,6 +106,18 @@ Settings (saved to settings.toml next to the program; the launcher writes it)
   Recommended: frame rate = your monitor's refresh, FXAA on, 16x filtering, video upscaling on; 150% or 200%
   render resolution if your GPU has room.
 
+Texture packs (HD textures, a sharper HUD and menus)
+  1. Set Texture pack to "On, save the game's textures" and play the parts you want to change. Each
+     texture the game uses is saved once to textures\dumps\, as a PNG named like
+     256x256_0123456789abcdef_DXT1.png. The 16-digit part is that texture's name.
+  2. Edit or upscale the images (any size: 2x or 4x is typical; keep the same picture layout, as many
+     images hold several HUD pieces side by side). PNG or DDS both work.
+  3. Put the edited files in textures\replacement\ (subfolders are fine). Only the 16-digit part of the
+     name has to stay the same.
+  4. Set Texture pack back to On; the game picks up new or changed files while it runs.
+  To use someone else's pack, unzip it into textures\replacement\. Packs hold the game's own images,
+  edited: share them only as far as the game's rights allow.
+
 Command-line options
   --no-launcher   start the game directly this once
   --launcher      show the launcher even when it is turned off
@@ -112,6 +127,7 @@ Everything stays in this folder
   assets\        your game, if you put it here instead of picking it in the launcher
   compiler\      the translator, and in compiler\work\ the game's translated code (safe to delete; rebuilt)
   CrimsonSkies.dll  the translated game code, built on first start
+  textures\      texture packs (replacement\) and saved game textures (dumps\), when you use them
   hdd\           the Xbox hard disk: saves (hdd\E\UDATA) and the game's cache (hdd\Z)
   settings.toml  settings
   logs\          a log of each run

@@ -50,7 +50,7 @@ fail to compile under Wine, the game says so in a message box.
 ## Settings
 
 The launcher sets display mode, resolution, render resolution (up to 300%, supersampling above 100%), FXAA,
-texture filtering, video upscaling, vsync, frame rate, FPS counter, trigger and crash rumble, and audio output. Every choice is saved in
+texture filtering, texture packs, video upscaling, vsync, frame rate, FPS counter, trigger and crash rumble, and audio output. Every choice is saved in
 `settings.toml` beside the executable:
 
 | Key | Values |
@@ -64,6 +64,7 @@ texture filtering, video upscaling, vsync, frame rate, FPS counter, trigger and 
 | `upscale_videos` | cutscenes and stills: bicubic upscaling and deinterlacing (on by default) |
 | `render_percent` | of the output height; above 100 renders bigger and averages down |
 | `anisotropic_filtering` | 0 (as the game asks), 2, 4, 8, 16 |
+| `custom_textures`, `dump_textures`, `texture_dump_format` | texture packs, from the SDK's texture dumper: images in `textures\replacement\` whose names hold a texture's 16-hex-digit key replace it at any resolution (on by default; PNG or DDS, subfolders allowed, reloaded while running); `dump_textures` writes each texture the game uses once to `textures\dumps\` as `<w>x<h>_<key>_<format>.png` (format 0) or `.dds` (1) to edit or upscale. The player README has the steps. |
 | `language` | the console language the game sees: 1 English, 3 German, 4 French (text and voices), 7 Korean, 8 Chinese traditional (text) |
 | `display_mode`, `width`, `height`, `vsync`, `audio_output` | the SDK's display and audio settings |
 | `game_path` | the game: a disc image (`.iso`) or the extracted game's folder; empty uses `assets` |

@@ -183,7 +183,7 @@ const Choice kLanguages[] = {{1, "English"}, {3, "German (text and voices)"}, {4
                              {7, "Korean (text)"}, {8, "Chinese, traditional (text)"}};
 const Choice kAudio[] = {{0, "Automatic"}, {1, "Stereo"}, {2, "5.1 surround"}, {3, "Mono"}};
 
-enum Row { kStart, kGame, kUpdate, kDisplayMode, kResolution, kRenderRes, kAntiAlias, kFiltering, kVideoUpscale, kVsync, kFrameRate, kFov, kHud, kSway, kFpsCounter, kDevice, kKeyPlayer, kBindings, kMouseMode, kMouse, kMousePitch, kTriggers, kCrash,
+enum Row { kStart, kGame, kUpdate, kDisplayMode, kResolution, kRenderRes, kAntiAlias, kFiltering, kTextures, kVideoUpscale, kVsync, kFrameRate, kFov, kHud, kSway, kFpsCounter, kDevice, kKeyPlayer, kBindings, kMouseMode, kMouse, kMousePitch, kTriggers, kCrash,
            kCheatHealth, kCheatAmmo, kCheatBoost, kCheatPlanes, kCheatMoney, kCheatTokens, kAudioOut, kLanguage, kLauncherAtStart, kQuit, kRows };
 
 template <size_t N>
@@ -273,6 +273,7 @@ const char* Label(int row) {
         case kRenderRes: return "Render resolution";
         case kAntiAlias: return "Anti-aliasing";
         case kFiltering: return "Texture filtering";
+        case kTextures: return "Texture pack";
         case kVideoUpscale: return "Video upscaling";
         case kVsync: return "VSync";
         case kFrameRate: return "Frame rate";
@@ -333,6 +334,7 @@ const char* Note(int row) {
         case kRenderRes: return "Of the output height. Above 100% renders bigger and scales down: smooth edges, more GPU.";
         case kAntiAlias: return "FXAA smooths jagged edges for almost no cost. Pairs with supersampling.";
         case kFiltering: return "Anisotropic filtering: sharper textures at an angle, like the ground below you.";
+        case kTextures: return "Images in textures\\replacement replace the game's. Save writes the game's to textures\\dumps.";
         case kVideoUpscale: return "Cutscenes and stills: bicubic upscaling and deinterlacing instead of a plain stretch.";
         case kVsync: return "Wait for the monitor's refresh. Off can tear.";
         case kFrameRate: return "The game was made for 30. Higher is smoother; set it to your monitor's refresh.";
@@ -394,6 +396,7 @@ std::string Value(int row) {
         case kRenderRes: return kRender[IndexOf(kRender, s.render_percent)].label;
         case kAntiAlias: return s.fxaa ? "FXAA" : "Off";
         case kFiltering: return kAniso[IndexOf(kAniso, s.aniso)].label;
+        case kTextures: return !s.custom_textures ? "Off" : s.dump_textures ? "On, save the game's textures" : "On";
         case kVideoUpscale: return s.upscale_videos ? "On" : "Off";
         case kVsync: return s.vsync ? "On" : "Off";
         case kFrameRate: return kFps[IndexOf(kFps, frame_rate::Fps())].label;
@@ -434,6 +437,13 @@ void Change(int row, int d) {
         case kRenderRes: s.render_percent = Step(kRender, s.render_percent, d); break;
         case kAntiAlias: s.fxaa = !s.fxaa; break;
         case kFiltering: s.aniso = Step(kAniso, s.aniso, d); break;
+        case kTextures: {  // Off, On, On + dump
+            int i = !s.custom_textures ? 0 : s.dump_textures ? 2 : 1;
+            i = (i + d + 3) % 3;
+            s.custom_textures = i > 0;
+            s.dump_textures = i == 2;
+            break;
+        }
         case kVideoUpscale: s.upscale_videos = !s.upscale_videos; break;
         case kVsync: s.vsync = !s.vsync; break;
         case kFrameRate: frame_rate::g_fps = Step(kFps, frame_rate::Fps(), d); break;

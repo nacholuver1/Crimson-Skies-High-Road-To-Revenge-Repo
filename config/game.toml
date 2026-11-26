@@ -312,6 +312,11 @@ call = "FrameRate_Dt"
 at = 0x2D6DA
 call = "Widescreen_Scale"
 
+# HUD markers with fit_hud on a wide screen: the world-to-screen's x spread for the HUD's callers (issue #10)
+[[hook]]
+at = 0x2B7A9
+call = "Widescreen_HudProject"
+
 # the camera's view sway added once per frame, scaled to the frame time (src/common/frame_rate.cpp)
 [[hook]]
 at = 0xD41B2

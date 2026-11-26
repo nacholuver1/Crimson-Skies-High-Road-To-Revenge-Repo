@@ -147,6 +147,16 @@
       "defaults": { "fit_hud": "true" }
     },
     {
+      "id": "texture_pack", "label": "Texture pack", "group": "Graphics",
+      "help": "Images in textures\\replacement beside the game replace the game's own, at any resolution. Save also writes each of the game's textures to textures\\dumps, named the way a replacement must be, to edit or upscale.",
+      "choices": [
+        { "label": "Off", "set": { "custom_textures": "false", "dump_textures": "false" } },
+        { "label": "On", "set": { "custom_textures": "true", "dump_textures": "false" } },
+        { "label": "On, save the game's textures", "set": { "custom_textures": "true", "dump_textures": "true" } }
+      ],
+      "defaults": { "custom_textures": "true", "dump_textures": "false" }
+    },
+    {
       "id": "camera_sway", "label": "Camera sway", "group": "Graphics",
       "help": "The camera's turbulence sway. Lower it, or turn it off, if the motion makes you feel sick.",
       "choices": [
