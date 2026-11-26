@@ -43,6 +43,7 @@ copy.
 ## Our dumps (`tools/xbe_info.py`, 2026-11-21)
 
 **Target = retail**, from `Crimson Skies - High Road to Revenge (USA) (En,Fr,De,Zh,Ko).xiso.iso`
+(media-patched by extract-xiso, see "Untouched retail xbe" below; both run since 1.16.1)
 (plain xiso, 226 files, 4.1 GB extracted to `assets/`). Its entry point and kernel thunk match
 what both other projects report.
 
@@ -253,6 +254,15 @@ general bug.)
 | The boost blur keeps parts of earlier frames | Draw blends the back buffer (LIN_X8R8G8B8) into the 256x256 copy with the back buffer's alpha as weight; X8 must read alpha 1, the host BGRA8 target kept stale alpha | SDK `BindTargetTexture`: force SRV alpha 1 for X1R5G5B5, R5G6B5, X8R8G8B8 | F3 capture; a test clear colour showed the blend weight varied per pixel |
 
 The 256x256 copy lives at the depth buffer's address (0x01A3E000); colour and depth are separate host resources here, but with alpha 1 the copy is fully replaced each frame, so no aliasing emulation is needed. The shimmer is a programmable pixel shader (bumpenv mode 6 on stage 1, no COLORSIGN). The fixed-function bump env op and signed bump filtering were added in the same release but are not exercised by it.
+
+## Untouched retail xbe: "different release" warning and dirty-disc screen (2026-11-26, v1.16.1)
+
+| Symptom | Cause | Fix | How it was found |
+|---|---|---|---|
+| Players with a full, untouched dump of the USA retail disc get the "different release" warning (RecompLauncher report, probably #7) | `assets/default.xbe` came from our xiso, which extract-xiso had media-patched: one `jge` after XAPI's startup media check made a `jmp` (file offset 0x1B86CF). Its `.text` section digest fails; the untouched xbe (sha1 `65f5d29d6ea165fdee110790040a569ca2aa6a5f`, all 32 digests match) is the real retail one | `game_info.cpp`: the untouched sha1 as an accepted release; the code is otherwise identical, so the same config runs both | Restoring the byte gave exactly the reporter's sha1; `work/xbe_check.py` (local) hashes an image's xbe and checks every section digest |
+| The untouched xbe stops on "There's a problem with the disc you're using" | The certificate (size 0x1EC, field 0x1D8 bit 0 set) asks XAPI's media check to read the disc's security sectors (READ DVD STRUCTURE, layer 0xFE) and compare the certificate timestamp at +0x4AB and a SHA-1 at +0x4CF; the SDK left the buffer unwritten. The patched copy skips the result | SDK `kernel/files.cpp`: answer the read with a consistent block (timestamp, digest; the kernel accepts the signature). Log: "Disc security sectors answered" | Screenshot of the error, then the generated code around the patched branch |
+
+Redump has one USA retail disc (XMID MS03301A). The "(Beta) (2003-12-09)" ISO in the folder is the separate debug-signed beta below.
 
 ## Demos menu (known issue)
 

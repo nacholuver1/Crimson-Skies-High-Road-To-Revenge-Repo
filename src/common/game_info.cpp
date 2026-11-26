@@ -115,4 +115,8 @@ const app::GameInfo app::kGame = {
     .ui = Ui,              // ImGui drawing each frame
     .pad = Pad,                 // changes a polled pad
     .rumble = Rumble,           // changes a rumble before it is set
+    // the untouched USA retail xbe (Microsoft's section digests intact). The port was recompiled from a copy that
+    // extract-xiso's default media patch had changed (one jge made a jmp in the disc check, file offset 0x1B86CF,
+    // sha1 bc4a99ad...); the code is otherwise the same, at the same addresses, so the same config runs both
+    .releases = {{"default.xbe", "65f5d29d6ea165fdee110790040a569ca2aa6a5f"}},
 };
