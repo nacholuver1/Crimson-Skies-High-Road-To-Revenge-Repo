@@ -44,6 +44,7 @@ Steam Deck and Linux (Proton)
      (Display mode Fullscreen, 1280x800, Frame rate 60), then START GAME.
   5. The first start translates the game's code (several minutes on the Deck, once). After that the intro
      movies play and the game starts.
+  Longer battery life: Render resolution 75%, Upscaling FSR 1 and Sharpening 50% look close to native at 1280x800.
   The program comes with Microsoft's shader compiler (d3dcompiler_47.dll, next to CrimsonSkies.exe), because
   Proton's own one leaves the screen black. You no longer need Protontricks or launch options for it (releases
   before 1.9.1 did). If the game warns that shaders could not be compiled, check that d3dcompiler_47.dll is next
@@ -56,6 +57,7 @@ Controls
   In game         : the game's own Xbox controls (RT main guns, LT secondary, Y afterburner). Xbox,
                     PlayStation and Switch controllers work through SDL, with the game's rumble.
                     F2 shows or hides the FPS counter.
+                    F12 saves a screenshot (PNG) in the screenshots folder next to the program.
 
 Settings (saved to settings.toml next to the program; the launcher writes it)
   Game                        your disc image or game folder (game_path in settings.toml)
@@ -63,8 +65,14 @@ Settings (saved to settings.toml next to the program; the launcher writes it)
                               popup: Update now downloads it, checks it and restarts the launcher (settings,
                               saves and your game stay). Left/Right turns the check off (check_updates).
   Display mode, resolution    borderless, fullscreen or a window
+  Aspect ratio                Fill the screen (default) uses your screen's shape; Original 4:3 shows the
+                              game as on a 4:3 TV, with black bars at the sides
   Render resolution           of your screen's height; above 100% renders bigger and averages down (supersampling)
   Anti-aliasing               FXAA on the final image
+  Upscaling                   FSR 1 (default): AMD's upscaler for a picture stretched to your screen
+                              (render resolution below 100%, or widened to a wide screen); Bilinear is a
+                              plain stretch
+  Sharpening                  FSR 1 sharpening of the final picture, Off (default) to 100%
   Texture filtering           anisotropic filtering, up to 16x
   Texture pack                On (default): images in textures\replacement\ are drawn instead of the
                               game's own, at any resolution (see "Texture packs" below). "On, save the
@@ -103,8 +111,9 @@ Settings (saved to settings.toml next to the program; the launcher writes it)
   Language                    English, German or French (text and voices), Korean or Chinese (text,
                               English voices)
   Launcher at startup         Off starts the game directly (launcher = true in settings.toml brings it back)
+  Reset settings              Enter twice: every setting back to its default; your game, key bindings and saves stay
   Recommended: frame rate = your monitor's refresh, FXAA on, 16x filtering, video upscaling on; 150% or 200%
-  render resolution if your GPU has room.
+  render resolution if your GPU has room. On a slow GPU: 75% with sharpening at 50%.
 
 Texture packs (HD textures, a sharper HUD and menus)
   1. Set Texture pack to "On, save the game's textures" and play the parts you want to change. Each
@@ -155,7 +164,7 @@ Keyboard and mouse (change any of these in the launcher's Key bindings page)
 
 Known issues
   - "Demos" on the main menu starts Microsoft's demo launcher (trailers and a Voodoo Vince demo), which is not
-    translated: the game stops on its error screen. Restart the program.
+    translated: the game restarts at its intro and says so in a note.
   - The game was made for 30 fps. Higher frame rates were tested through the campaign without problems, but if
     something feels too fast or slow, set the frame rate to 30 and report it.
   - The game restarts itself between the menus and each level (the Xbox rebooted there too), so the NVIDIA app

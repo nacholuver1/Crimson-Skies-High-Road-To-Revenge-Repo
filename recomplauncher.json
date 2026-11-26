@@ -24,11 +24,13 @@
   ],
   "folders": {
     "saves": [{ "path": "{install}/hdd/E/UDATA" }],
-    "logs": [{ "path": "{install}/logs" }]
+    "logs": [{ "path": "{install}/logs" }],
+    "screenshots": [{ "path": "{install}/screenshots" }]
   },
   "actions": [
     { "id": "saves", "label": "Saves", "help": "Your campaign saves and the game's own options.", "open": "saves" },
-    { "id": "logs", "label": "Logs", "help": "The log of each run, for bug reports.", "open": "logs" }
+    { "id": "logs", "label": "Logs", "help": "The log of each run, for bug reports.", "open": "logs" },
+    { "id": "screenshots", "label": "Screenshots", "help": "Pictures you took with F12 in the game.", "open": "screenshots" }
   ],
   "groups": [{ "id": "Cheats", "advanced": true }],
   "settings": [
@@ -58,6 +60,15 @@
         { "label": "5120 x 1440", "set": { "width": "5120", "height": "1440" } }
       ],
       "defaults": { "width": "0", "height": "0" }
+    },
+    {
+      "id": "original_aspect", "label": "Aspect ratio", "group": "Display",
+      "help": "Fill the screen uses your screen's shape. Original 4:3 shows the game as on a 4:3 TV, with bars at the sides.",
+      "choices": [
+        { "label": "Fill the screen", "set": { "original_aspect": "false" } },
+        { "label": "Original 4:3", "set": { "original_aspect": "true" } }
+      ],
+      "defaults": { "original_aspect": "false" }
     },
     {
       "id": "render_percent", "label": "Render resolution", "group": "Display",
@@ -102,6 +113,27 @@
         { "label": "FXAA", "set": { "fxaa": "true" } }
       ],
       "defaults": { "fxaa": "false" }
+    },
+    {
+      "id": "fsr", "label": "Upscaling", "group": "Graphics",
+      "help": "FSR 1 upscales a picture stretched to the screen (render resolution below 100%, or widened to a wide screen) with sharp edges. Bilinear is a plain stretch.",
+      "choices": [
+        { "label": "FSR 1", "set": { "fsr": "true" } },
+        { "label": "Bilinear", "set": { "fsr": "false" } }
+      ],
+      "defaults": { "fsr": "true" }
+    },
+    {
+      "id": "sharpening", "label": "Sharpening", "group": "Graphics",
+      "help": "FSR 1 sharpening of the final picture. Pairs with FXAA and render resolutions below 100%.",
+      "choices": [
+        { "label": "Off", "set": { "sharpening": "0" } },
+        { "label": "25%", "set": { "sharpening": "25" } },
+        { "label": "50%", "set": { "sharpening": "50" } },
+        { "label": "75%", "set": { "sharpening": "75" } },
+        { "label": "100%", "set": { "sharpening": "100" } }
+      ],
+      "defaults": { "sharpening": "0" }
     },
     {
       "id": "anisotropic_filtering", "label": "Texture filtering", "group": "Graphics",

@@ -171,6 +171,7 @@ const uint32_t kResolutions[][2] = {{0, 0},       {1280, 720},  {1600, 900},  {1
                                     {2560, 1440}, {3440, 1440}, {3840, 1600}, {3840, 2160}, {5120, 1440}};
 const Choice kRender[] = {{50, "50%"},  {75, "75%"},   {100, "100% (native)"}, {150, "150% (1.5x supersampling)"},
                           {200, "200% (2x supersampling)"}, {300, "300% (3x supersampling)"}};
+const Choice kSharpens[] = {{0, "Off"}, {25, "25%"}, {50, "50%"}, {75, "75%"}, {100, "100%"}};
 const Choice kAniso[] = {{0, "Game default"}, {2, "2x"}, {4, "4x"}, {8, "8x"}, {16, "16x"}};
 const Choice kFps[] = {{30, "30 (original)"}, {60, "60"}, {120, "120"}, {144, "144"}, {165, "165"}, {240, "240"}};
 const Choice kFovs[] = {{80, "80%"}, {90, "90%"}, {100, "100% (original)"}, {110, "110%"}, {120, "120%"}, {130, "130%"}};
@@ -183,8 +184,8 @@ const Choice kLanguages[] = {{1, "English"}, {3, "German (text and voices)"}, {4
                              {7, "Korean (text)"}, {8, "Chinese, traditional (text)"}};
 const Choice kAudio[] = {{0, "Automatic"}, {1, "Stereo"}, {2, "5.1 surround"}, {3, "Mono"}};
 
-enum Row { kStart, kGame, kUpdate, kDisplayMode, kResolution, kRenderRes, kAntiAlias, kFiltering, kTextures, kVideoUpscale, kVsync, kFrameRate, kFov, kHud, kSway, kFpsCounter, kDevice, kKeyPlayer, kBindings, kMouseMode, kMouse, kMousePitch, kTriggers, kCrash,
-           kCheatHealth, kCheatAmmo, kCheatBoost, kCheatPlanes, kCheatMoney, kCheatTokens, kAudioOut, kLanguage, kLauncherAtStart, kQuit, kRows };
+enum Row { kStart, kGame, kUpdate, kDisplayMode, kResolution, kAspect, kRenderRes, kAntiAlias, kUpscaler, kSharpen, kFiltering, kTextures, kVideoUpscale, kVsync, kFrameRate, kFov, kHud, kSway, kFpsCounter, kDevice, kKeyPlayer, kBindings, kMouseMode, kMouse, kMousePitch, kTriggers, kCrash,
+           kCheatHealth, kCheatAmmo, kCheatBoost, kCheatPlanes, kCheatMoney, kCheatTokens, kAudioOut, kLanguage, kLauncherAtStart, kReset, kQuit, kRows };
 
 template <size_t N>
 int IndexOf(const Choice (&c)[N], uint32_t v) {
@@ -199,6 +200,7 @@ uint32_t Step(const Choice (&c)[N], uint32_t v, int d) {
 
 HWND g_hwnd = nullptr;
 int g_input_cooldown = 0;  // frames that ignore input after the file dialog closes
+bool g_reset_armed = false;  // Reset settings: the first Enter asks, the second resets
 
 // a path as UTF-8 in a std::string (C++20's u8string is std::u8string)
 std::string Utf8(const std::filesystem::path& p) {
@@ -270,8 +272,11 @@ const char* Label(int row) {
         case kUpdate: return "Updates";
         case kDisplayMode: return "Display mode";
         case kResolution: return "Resolution";
+        case kAspect: return "Aspect ratio";
         case kRenderRes: return "Render resolution";
         case kAntiAlias: return "Anti-aliasing";
+        case kUpscaler: return "Upscaling";
+        case kSharpen: return "Sharpening";
         case kFiltering: return "Texture filtering";
         case kTextures: return "Texture pack";
         case kVideoUpscale: return "Video upscaling";
@@ -298,6 +303,7 @@ const char* Label(int row) {
         case kAudioOut: return "Audio output";
         case kLanguage: return "Language";
         case kLauncherAtStart: return "Launcher at startup";
+        case kReset: return "Reset settings";
         case kQuit: return "Quit";
     }
     return "";
@@ -331,8 +337,11 @@ const char* Note(int row) {
         }
         case kDisplayMode: return "Borderless fullscreen, exclusive fullscreen or a window.";
         case kResolution: return "The window's size. Desktop follows your screen.";
+        case kAspect: return "Fill uses your screen's shape. Original 4:3 shows the game as on a 4:3 TV, bars at the sides.";
         case kRenderRes: return "Of the output height. Above 100% renders bigger and scales down: smooth edges, more GPU.";
         case kAntiAlias: return "FXAA smooths jagged edges for almost no cost. Pairs with supersampling.";
+        case kUpscaler: return "FSR 1 upscales a frame stretched to the screen (below 100%, or widened) with sharp edges.";
+        case kSharpen: return "FSR 1 sharpening of the final picture. Pairs with FXAA and render resolutions below 100%.";
         case kFiltering: return "Anisotropic filtering: sharper textures at an angle, like the ground below you.";
         case kTextures: return "Images in textures\\replacement replace the game's. Save writes the game's to textures\\dumps.";
         case kVideoUpscale: return "Cutscenes and stills: bicubic upscaling and deinterlacing instead of a plain stretch.";
@@ -359,6 +368,9 @@ const char* Note(int row) {
         case kAudioOut: return "Automatic follows your Windows speaker setup.";
         case kLanguage: return "The game's language. Korean and Chinese have English voices.";
         case kLauncherAtStart: return "Off starts the game directly. Back on: launcher = true in settings.toml.";
+        case kReset:
+            return g_reset_armed ? "Enter again: every setting back to its default. Your game, key bindings and saves stay."
+                                 : "Every setting back to its default. Your game, key bindings and saves stay.";
         case kQuit: return "Close without starting the game.";
     }
     return "";
@@ -393,8 +405,11 @@ std::string Value(int row) {
             else std::snprintf(b, sizeof b, "%ux%u", kResolutions[i][0], kResolutions[i][1]);
             return b;
         }
+        case kAspect: return s.original_aspect ? "Original 4:3" : "Fill the screen";
         case kRenderRes: return kRender[IndexOf(kRender, s.render_percent)].label;
         case kAntiAlias: return s.fxaa ? "FXAA" : "Off";
+        case kUpscaler: return s.fsr ? "FSR 1" : "Bilinear";
+        case kSharpen: return kSharpens[IndexOf(kSharpens, s.sharpening)].label;
         case kFiltering: return kAniso[IndexOf(kAniso, s.aniso)].label;
         case kTextures: return !s.custom_textures ? "Off" : s.dump_textures ? "On, save the game's textures" : "On";
         case kVideoUpscale: return s.upscale_videos ? "On" : "Off";
@@ -420,6 +435,7 @@ std::string Value(int row) {
         case kAudioOut: return kAudio[IndexOf(kAudio, s.audio_output)].label;
         case kLanguage: return kLanguages[IndexOf(kLanguages, s.language)].label;
         case kLauncherAtStart: return g_show ? "On" : "Off";
+        case kReset: return g_reset_armed ? "Press again to reset" : "";
     }
     return "";
 }
@@ -434,8 +450,11 @@ void Change(int row, int d) {
             s.height = kResolutions[i][1];
             break;
         }
+        case kAspect: s.original_aspect = !s.original_aspect; break;
         case kRenderRes: s.render_percent = Step(kRender, s.render_percent, d); break;
         case kAntiAlias: s.fxaa = !s.fxaa; break;
+        case kUpscaler: s.fsr = !s.fsr; break;
+        case kSharpen: s.sharpening = Step(kSharpens, s.sharpening, d); break;
         case kFiltering: s.aniso = Step(kAniso, s.aniso, d); break;
         case kTextures: {  // Off, On, On + dump
             int i = !s.custom_textures ? 0 : s.dump_textures ? 2 : 1;
@@ -476,7 +495,14 @@ void Change(int row, int d) {
     app::Save();
 }
 
-bool HasOption(int row) { return row != kStart && row != kGame && row != kQuit && row != kBindings; }
+bool HasOption(int row) { return row != kStart && row != kGame && row != kQuit && row != kBindings && row != kReset; }
+
+// the second press of Reset settings; the launcher's own rows show the defaults at once
+void ResetSettings() {
+    app::ResetToDefaults({"launcher", "check_updates"});
+    app::Save();
+    g_reset_armed = false;
+}
 
 enum class Result { Pending, Start, Quit };
 
@@ -747,11 +773,11 @@ Result Draw(int& sel, float scale) {
         if (hover && (io.MouseDelta.x != 0 || io.MouseDelta.y != 0)) sel = r;
         if (r == sel) DrawHighlight(dl, a, b, fs, scale);
         float ty = a.y + (row_h - fs) / 2;
-        bool action = r == kStart || r == kGame || r == kQuit || r == kBindings || r == kUpdate;
+        bool action = r == kStart || r == kGame || r == kQuit || r == kBindings || r == kUpdate || r == kReset;
         ImU32 col = r == kStart ? (GameReady() ? kGold : kGrey) : r == sel ? kWhite : kGrey;
         dl->AddText(ImVec2(p0.x + pad, ty), r == kStart && r == sel ? kWhite : col, Label(r));
-        if (HasOption(r) || r == kGame || r == kBindings) {
-            std::string v = r == kBindings ? std::string(">") : r == sel && r != kGame ? "<  " + Value(r) + "  >" : Value(r);
+        if (HasOption(r) || r == kGame || r == kBindings || (r == kReset && g_reset_armed)) {
+            std::string v = r == kBindings ? std::string(">") : r == sel && r != kGame && r != kReset ? "<  " + Value(r) + "  >" : Value(r);
             float vw = ImGui::CalcTextSize(v.c_str()).x;
             ImU32 vc = r == kGame && g_game.probe != app::GameProbe::Match ? kAccent
                        : r == kUpdate && updater::GetState() == updater::State::Available ? kGold
@@ -766,6 +792,7 @@ Result Draw(int& sel, float scale) {
         }
         if (hover && ImGui::IsMouseClicked(ImGuiMouseButton_Right) && HasOption(r)) Change(r, -1);
     }
+    if (sel != kReset) g_reset_armed = false;  // moving away cancels the reset
     if (accept) {
         if (sel == kStart && !GameReady()) sel = kGame;
         else if (sel == kStart && Updating()) sel = kUpdate;  // the update first: it may replace the compiler
@@ -774,6 +801,8 @@ Result Draw(int& sel, float scale) {
         else if (sel == kQuit) result = Result::Quit;
         else if (sel == kBindings) OpenBindings();
         else if (sel == kUpdate) UpdateAction();
+        else if (sel == kReset && !g_reset_armed) g_reset_armed = true;
+        else if (sel == kReset) ResetSettings();
         else Change(sel, 1);
     }
     // an update being written must finish first; once in place the launcher closes and the new version starts

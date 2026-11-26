@@ -15,9 +15,10 @@ reimplemented on Windows underneath. No emulator runs at play time.
 **This repository contains no game data.** No disc image, no game files, and none of the code translated from the
 game's executable: a release translates the game's code on the player's own PC, from their own copy.
 
-**Status: playable.** The campaign runs with sound and saves, at 30 to 240 fps, in true widescreen (16:9 up
-to 32:9 ultrawide). Known issues: the main menu's **Demos** (Microsoft's demo launcher, `cdx.xbe`) is not translated and
-stops the game.
+**Status: complete.** The campaign runs with sound and saves, at 30 to 240 fps, in true widescreen (16:9 up
+to 32:9 ultrawide). Since 1.16.0 the port is feature complete: only bug fixes from here on. Known issue: the main
+menu's **Demos** (Microsoft's demo launcher, `cdx.xbe`) is not translated; picking it restarts the game with a note.
+[docs/MAINTAINING.md](docs/MAINTAINING.md) is the guide for anyone who works on it later.
 
 ## Playing
 
@@ -47,9 +48,12 @@ Since 1.9.1 the release carries Microsoft's `d3dcompiler_47.dll` next to the exe
 own (that one leaves the screen black), so Protontricks and launch options are no longer needed. If shaders still
 fail to compile under Wine, the game says so in a message box.
 
+For longer battery life on the Deck: Render resolution 75% with Upscaling FSR 1 and Sharpening 50% looks close to
+native at 1280x800 and leaves the GPU more idle.
+
 ## Settings
 
-The launcher sets display mode, resolution, render resolution (up to 300%, supersampling above 100%), FXAA,
+The launcher sets display mode, resolution, render resolution (up to 300%, supersampling above 100%), FXAA, FSR 1 upscaling and sharpening, a 4:3 original aspect,
 texture filtering, texture packs, video upscaling, vsync, frame rate, FPS counter, trigger and crash rumble, and audio output. Every choice is saved in
 `settings.toml` beside the executable:
 
@@ -60,7 +64,11 @@ texture filtering, texture packs, video upscaling, vsync, frame rate, FPS counte
 | `fov` | field of view in percent of the original, 80 to 130 (100 by default). On a widescreen output the 3D view fills the monitor's shape, 16:9 up to 32:9. |
 | `fit_hud` | on a widescreen output the HUD and menus keep their 4:3 shape and layout, centered (on by default); off stretches them to the width |
 | `show_fps` | FPS counter in the corner; **F2** toggles it in game |
+| (key) | **F12** saves the picture, without the FPS counter, as a PNG in `screenshots\` beside the exe |
 | `fxaa` | FXAA on the final image |
+| `fsr` | AMD FSR 1 upscaling (EASU) of a frame stretched to the output: below 100% render resolution, or the 4:3-wide frame widened to a wide screen (on by default); off is a bilinear stretch |
+| `sharpening` | AMD FSR 1 sharpening (RCAS) of the final image, 0 (off, default) to 100 |
+| `original_aspect` | 4:3 on any screen with bars at the sides; the game is told of a 4:3 TV, as on the console without widescreen (off by default) |
 | `upscale_videos` | cutscenes and stills: bicubic upscaling and deinterlacing (on by default) |
 | `render_percent` | of the output height; above 100 renders bigger and averages down |
 | `anisotropic_filtering` | 0 (as the game asks), 2, 4, 8, 16 |

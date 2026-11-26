@@ -1,4 +1,5 @@
-// On-screen frame rate: F2 shows or hides it, show_fps = true in settings.toml starts with it on.
+// On-screen frame rate: F2 shows or hides it, show_fps = true in settings.toml starts with it on. Also the short
+// notes the runtime posts (app::PostNote): a screenshot saved with F12, a restart instead of a demo program.
 // fps is the renderer's count of presented frames over the last second; the worst frame is the longest gap between
 // two frames in that second, which shows a hitch the average hides.
 #include "fps_overlay.h"
@@ -10,6 +11,9 @@
 
 #include <algorithm>
 #include <imgui.h>
+#include <string>
+
+#include "app/app.h"
 
 namespace fps_overlay {
 
@@ -17,6 +21,8 @@ bool g_show = false;
 
 namespace {
 float g_worst_ms = 0, g_worst_shown = 0, g_window_s = 0;
+std::string g_note;
+float g_note_s = 0;  // seconds the runtime's note (app::PostNote) stays up
 }
 
 bool Message(void*, uint32_t msg, uintptr_t wp, intptr_t lp, intptr_t* result) {
@@ -36,6 +42,22 @@ void Draw(double fps) {
         g_worst_shown = g_worst_ms;
         g_worst_ms = 0;
         g_window_s = 0;
+    }
+    // the runtime's notes: a screenshot saved (F12), a restart in place of a program the port doesn't include
+    if (std::string note = app::TakeNote(); !note.empty()) {
+        g_note = std::move(note);
+        g_note_s = g_note.size() > 60 ? 6.0f : 2.0f;
+    }
+    if (g_note_s > 0) {
+        g_note_s -= dt_ms / 1000.0f;
+        ImVec2 size = ImGui::GetIO().DisplaySize;
+        ImGui::SetNextWindowPos(ImVec2(size.x * 0.5f, size.y - 24), ImGuiCond_Always, ImVec2(0.5f, 1.0f));
+        ImGui::SetNextWindowBgAlpha(0.6f);
+        ImGuiWindowFlags note = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize |
+                                ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoNav |
+                                ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoSavedSettings;
+        if (ImGui::Begin("##note", nullptr, note)) ImGui::TextUnformatted(g_note.c_str());
+        ImGui::End();
     }
     if (!g_show) return;
     ImGui::SetNextWindowPos(ImVec2(8, 8));

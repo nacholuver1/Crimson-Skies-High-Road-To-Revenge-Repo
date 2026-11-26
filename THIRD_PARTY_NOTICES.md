@@ -15,7 +15,29 @@ under the SDK's license and carries:
   [#5](https://github.com/TGP482/XboxXBERecomp/pull/5) by yacineolivier-maker (Conker: Live & Reloaded port).
 - Fixes made for this game: setjmp continuations, empty directory masks, DirectSound position notifications and
   rolloff, texture refills between draws and texture-lock waits, the shadow sampler border in reversed depth,
-  critical sections on host state, FXAA, supersampling, video upscaling, a game_path setting, trigger rumble and logging switches.
+  critical sections on host state, FXAA, supersampling, video upscaling, FSR 1 upscaling and sharpening, a 4:3
+  original-aspect setting, a game_path setting, trigger rumble and logging switches.
+
+## AMD FidelityFX Super Resolution 1
+
+https://github.com/GPUOpen-Effects/FidelityFX-FSR — MIT License. The runtime's `fsr` upscaling (EASU) and
+`sharpening` (RCAS) are a pixel-shader port of the FP32 path of `ffx_fsr1.h`.
+
+> Copyright (c) 2021 Advanced Micro Devices, Inc. All rights reserved.
+>
+> Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+> documentation files (the "Software"), to deal in the Software without restriction, including without limitation
+> the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+> permit persons to whom the Software is furnished to do so, subject to the following conditions:
+>
+> The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+> the Software.
+>
+> THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+> THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+> AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+> TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+> SOFTWARE.
 
 The SDK's executables include these libraries (their licenses are in the release's `licenses` folder):
 
