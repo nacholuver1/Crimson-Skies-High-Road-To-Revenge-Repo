@@ -278,7 +278,7 @@ bool Message(void* hwnd, uint32_t msg, uintptr_t wp, intptr_t lp, intptr_t* resu
             return false;  // DefWindowProc cleans up
         }
         case WM_SETCURSOR:
-            if (On() && LOWORD(lp) == HTCLIENT && Front()) {
+            if (LOWORD(lp) == HTCLIENT && Front()) {
                 SetCursor(nullptr);
                 *result = TRUE;
                 return true;
@@ -295,11 +295,13 @@ bool Message(void* hwnd, uint32_t msg, uintptr_t wp, intptr_t lp, intptr_t* resu
             }
             return false;
         default: {
-            // keyboard and mouse in use with the game in front: the cursor hidden and kept in the window
-            bool hide = On() && Front();
+            // the game in front: the cursor hidden (the game has no use for it, with any input_device), and kept in the
+            // window while the keyboard and mouse are in use
+            bool hide = Front();
+            bool clip = hide && On();
             g_hide = hide;
-            if (hide && !g_clipped) Clip(w, true);
-            if (!hide && g_clipped) Clip(w, false);
+            if (clip && !g_clipped) Clip(w, true);
+            if (!clip && g_clipped) Clip(w, false);
             if (hide != g_hidden) {
                 ShowCursor(hide ? FALSE : TRUE);
                 g_hidden = hide;
