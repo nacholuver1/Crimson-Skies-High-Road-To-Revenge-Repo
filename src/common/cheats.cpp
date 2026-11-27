@@ -38,12 +38,25 @@
 //   The variable manager's own code (0x43000-0x45000: defaults, carry-over copies) also reads the real amounts.
 //   So buying, repairing and gambling cost nothing and the save keeps the real amounts; what is earned while
 //   the cheat is on is not kept.
+// - Keys: F5-F10 turn each one on and off in game (cheat_keys, on by default), with a note at the bottom of the
+//   screen. Health turned off mid-flight clears the god flag if this set it and lets the plane's health go down
+//   again (its minimum back to 0); the hangar's money, tokens and planes show the change when its screen is next read.
 #include "cheats.h"
+
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
 
 #include <algorithm>
 #include <cstdint>
 #include <cstring>
+#include <string>
 
+#include "app/app.h"
 #include "core/log.h"
 #include "cpu/x86_context.h"
 #include "kbm.h"
@@ -55,6 +68,30 @@ bool g_boost = false;
 bool g_planes = false;
 bool g_money = false;
 bool g_tokens = false;
+bool g_keys = true;
+
+bool Message(void*, uint32_t msg, uintptr_t wp, intptr_t lp, intptr_t* result) {
+    // F10 arrives as a system key (it opens the window menu otherwise)
+    if ((msg != WM_KEYDOWN && msg != WM_SYSKEYDOWN) || !g_keys || (lp & (1 << 30))) return false;  // not auto-repeat
+    struct Key {
+        uintptr_t vk;
+        bool* on;
+        const char* name;
+    };
+    static const Key kKeys[] = {{VK_F5, &g_health, "unlimited health"}, {VK_F6, &g_ammo, "unlimited ammo"},
+                                {VK_F7, &g_boost, "unlimited boost"},   {VK_F8, &g_planes, "all planes"},
+                                {VK_F9, &g_money, "unlimited money"},   {VK_F10, &g_tokens, "unlimited tokens"}};
+    for (const Key& k : kKeys) {
+        if (wp != k.vk) continue;
+        *k.on = !*k.on;
+        std::string note = std::string("Cheat: ") + k.name + (*k.on ? " ON" : " off");
+        LOGR("%s (key F%d)", note.c_str(), int(k.vk - VK_F1 + 1));
+        app::PostNote(note);
+        *result = 0;
+        return true;
+    }
+    return false;
+}
 }  // namespace cheats
 
 namespace {
@@ -64,6 +101,9 @@ uint32_t Read32(uint8_t* base, uint32_t a) {
     return v;
 }
 void Write32(uint8_t* base, uint32_t a, uint32_t v) { std::memcpy(base + a, &v, 4); }
+
+uint32_t g_god_flags = 0;    // the console's flags object whose god bit this set (0 none)
+bool g_pinned = false;       // this held a player's health and minimum at the max this session
 
 // a guest string starts with (or, whole, equals) the ASCII text t, ignoring case as the game's variables do
 bool Match(const uint8_t* s, const char* t, bool whole) {
@@ -83,6 +123,7 @@ void Cheats_God(X86Context& ctx, uint8_t* base) {
     uint32_t flags = Read32(base, ctx.edx + 0x158);
     if (!(flags & 1)) {
         Write32(base, ctx.edx + 0x158, flags | 1);
+        g_god_flags = ctx.edx;  // so turning the cheat off clears it, but never a god code the player entered
         static bool logged = false;
         if (!logged) LOGR("Cheats: unlimited health (the game's god cheat) on");
         logged = true;
@@ -109,6 +150,22 @@ void Cheats_Plane(X86Context& ctx, uint8_t* base) {
         }
         kbm::PlaneManeuver(first);
     }
+    if (!cheats::g_health) {  // turned off in game (F5)
+        if (g_god_flags) {
+            Write32(base, g_god_flags + 0x158, Read32(base, g_god_flags + 0x158) & ~1u);
+            g_god_flags = 0;
+            LOGR("Cheats: unlimited health off");
+        }
+        // a minimum at the max is what the hook below leaves (the game's own planes never have one): back to 0, so a
+        // player's plane can be shot down again, or 100 under a god code the player entered (what its spawn sets).
+        // Each player's plane on its own update, so split screen and planes not flying at the time are covered too
+        uint32_t most = Read32(base, unit + 0x168);
+        if (g_pinned && int32_t(most) > 0 && Read32(base, unit + 0x164) == most) {
+            uint32_t console = Read32(base, 0x3219C8), obj = console ? Read32(base, console + 0x100) : 0;
+            bool god = obj && (Read32(base, obj + 0x158) & 1);  // the console's flags, [[0x3219C8]+0x100]+0x158
+            Write32(base, unit + 0x164, god ? 100 : 0);
+        }
+    }
     if (!cheats::g_ammo && !cheats::g_boost && !cheats::g_health) return;
     static uint32_t logged = 0;
     if (logged != plane) {  // once per player plane (a new one each spawn)
@@ -126,6 +183,7 @@ void Cheats_Plane(X86Context& ctx, uint8_t* base) {
         // Plenty_Group6674). Fields written directly: the setters would send a network event each frame.
         uint32_t most = Read32(base, unit + 0x168);
         if (int32_t(most) > 0) {
+            g_pinned = true;
             if (Read32(base, unit + 0x164) != most) Write32(base, unit + 0x164, most);
             if (Read32(base, unit + 0x160) != most) Write32(base, unit + 0x160, most);
         }

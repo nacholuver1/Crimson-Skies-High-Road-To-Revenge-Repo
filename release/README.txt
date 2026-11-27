@@ -58,6 +58,7 @@ Controls
                     PlayStation and Switch controllers work through SDL, with the game's rumble.
                     F2 shows or hides the FPS counter.
                     F12 saves a screenshot (PNG) in the screenshots folder next to the program.
+                    F5-F10 turn the cheats on and off while you play (see the cheat rows below).
 
 Settings (saved to settings.toml next to the program; the launcher writes it)
   Game                        your disc image or game folder (game_path in settings.toml)
@@ -112,6 +113,9 @@ Settings (saved to settings.toml next to the program; the launcher writes it)
     unlimited money           999,999 money and buying costs nothing; your save keeps its real money,
                               and money earned while it's on isn't kept
     unlimited tokens          999 upgrade tokens and upgrades cost none; same for your save
+    cheat keys in game        On: F5 health, F6 ammo, F7 boost, F8 planes, F9 money, F10 tokens turn
+                              each cheat on or off while you play, with a note on screen; the hangar
+                              shows money, tokens and planes changes when you next open its screen
   Language                    English, German or French (text and voices), Korean or Chinese (text,
                               English voices)
   Launcher at startup         Off starts the game directly (launcher = true in settings.toml brings it back)

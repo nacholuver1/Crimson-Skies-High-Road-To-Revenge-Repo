@@ -52,9 +52,10 @@ void Startup() {
     frame_rate::Init();
 }
 
-// window messages: the FPS overlay's key first, then the mouse
+// window messages: the FPS overlay's key and the cheat keys first, then the mouse
 bool Message(void* hwnd, uint32_t msg, uintptr_t wp, intptr_t lp, intptr_t* result) {
-    return fps_overlay::Message(hwnd, msg, wp, lp, result) || kbm::Message(hwnd, msg, wp, lp, result);
+    return fps_overlay::Message(hwnd, msg, wp, lp, result) || cheats::Message(hwnd, msg, wp, lp, result) ||
+           kbm::Message(hwnd, msg, wp, lp, result);
 }
 
 // each polled pad: keyboard and mouse added to their player, then the trigger rumble reads what is held
@@ -107,7 +108,8 @@ const app::GameInfo app::kGame = {
                 {"cheat_boost", &cheats::g_boost, nullptr},       // boost never runs out
                 {"cheat_planes", &cheats::g_planes, nullptr},     // every plane unlocked (not saved)
                 {"cheat_money", &cheats::g_money, nullptr},       // 999,999 money, spending costs nothing (not saved)
-                {"cheat_tokens", &cheats::g_tokens, nullptr}},    // 999 upgrade tokens, upgrades cost none (not saved)
+                {"cheat_tokens", &cheats::g_tokens, nullptr},     // 999 upgrade tokens, upgrades cost none (not saved)
+                {"cheat_keys", &cheats::g_keys, nullptr}},        // F5-F10 toggle the cheats in game
     .load = kbm::Load,                      // reads more from the settings file's toml::table
     .save = kbm::Save,                      // writes more into it
     .init = Startup,                      // after the settings load, before the window and boot

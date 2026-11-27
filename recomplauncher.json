@@ -386,6 +386,15 @@
         { "label": "On", "set": { "cheat_tokens": "true" } }
       ],
       "defaults": { "cheat_tokens": "false" }
+    },
+    {
+      "id": "cheat_keys", "label": "Cheat keys in game", "group": "Cheats",
+      "help": "F5 health, F6 ammo, F7 boost, F8 planes, F9 money, F10 tokens turn each cheat on or off while you play.",
+      "choices": [
+        { "label": "On", "set": { "cheat_keys": "true" } },
+        { "label": "Off", "set": { "cheat_keys": "false" } }
+      ],
+      "defaults": { "cheat_keys": "true" }
     }
   ]
 }
