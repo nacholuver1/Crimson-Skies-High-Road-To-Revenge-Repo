@@ -121,4 +121,5 @@ const app::GameInfo app::kGame = {
     // extract-xiso's default media patch had changed (one jge made a jmp in the disc check, file offset 0x1B86CF,
     // sha1 bc4a99ad...); the code is otherwise the same, at the same addresses, so the same config runs both
     .releases = {{"default.xbe", "65f5d29d6ea165fdee110790040a569ca2aa6a5f"}},
+    .version = CS_VERSION,  // the log's first line
 };

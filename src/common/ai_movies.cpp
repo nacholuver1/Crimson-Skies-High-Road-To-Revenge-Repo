@@ -370,13 +370,13 @@ Status Check() {
 }
 
 int Run() {
+    // the log also writes to stderr: the step's output is only its own lines (the log file keeps them all)
+    std::freopen("NUL", "w", stderr);
     // RecompLauncher's setup step without the AI cutscenes tick: the game builds its code at its first start
     if (!std::wcsstr(GetCommandLineW(), L"--ai-movies")) {
         SayProgress(1, "Nothing to prepare");
         return 0;
     }
-    // the log also writes to stderr: the step's output is only its own lines (the log file keeps them all)
-    std::freopen("NUL", "w", stderr);
     SayProgress(0, "Looking for the game's movies");
     Game g = FindMovies();
     if (!g.error.empty()) {
