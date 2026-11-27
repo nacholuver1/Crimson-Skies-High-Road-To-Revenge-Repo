@@ -26,6 +26,13 @@
         "note": "Downloads Real-ESRGAN and FFmpeg (165 MB) and upscales the 60 cutscenes on your graphics card: about an hour.",
         "args": ["--ai-movies"],
         "default": false
+      },
+      {
+        "id": "ai_textures",
+        "label": "AI-upscaled textures",
+        "note": "Downloads Real-ESRGAN (45 MB) and upscales the game's textures on your graphics card: a few minutes. Menus and the HUD stay as they are.",
+        "args": ["--ai-textures"],
+        "default": false
       }
     ]
   },
@@ -178,6 +185,15 @@
         { "label": "Off", "set": { "ai_movies": "false" } }
       ],
       "defaults": { "ai_movies": "true" }
+    },
+    {
+      "id": "ai_textures", "label": "AI textures", "group": "Graphics",
+      "help": "The game's textures upscaled by AI on your PC (tick AI-upscaled textures under Set Up Again to make them). Menus and the HUD stay as they are; your own texture pack wins.",
+      "choices": [
+        { "label": "Off", "set": { "ai_textures": "false" } },
+        { "label": "On", "set": { "ai_textures": "true" } }
+      ],
+      "defaults": { "ai_textures": "false" }
     },
     {
       "id": "fov", "label": "Field of view", "group": "Graphics",

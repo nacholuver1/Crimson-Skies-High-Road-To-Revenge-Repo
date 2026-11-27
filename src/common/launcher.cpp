@@ -185,7 +185,7 @@ const Choice kLanguages[] = {{1, "English"}, {3, "German (text and voices)"}, {4
                              {7, "Korean (text)"}, {8, "Chinese, traditional (text)"}};
 const Choice kAudio[] = {{0, "Automatic"}, {1, "Stereo"}, {2, "5.1 surround"}, {3, "Mono"}};
 
-enum Row { kStart, kGame, kUpdate, kDisplayMode, kResolution, kAspect, kRenderRes, kAntiAlias, kUpscaler, kSharpen, kFiltering, kTextures, kVideoUpscale, kAiMovies, kVsync, kFrameRate, kFov, kHud, kSway, kFpsCounter, kDevice, kKeyPlayer, kBindings, kMouseMode, kMouse, kMousePitch, kTriggers, kCrash,
+enum Row { kStart, kGame, kUpdate, kDisplayMode, kResolution, kAspect, kRenderRes, kAntiAlias, kUpscaler, kSharpen, kFiltering, kTextures, kVideoUpscale, kAiMovies, kAiTextures, kVsync, kFrameRate, kFov, kHud, kSway, kFpsCounter, kDevice, kKeyPlayer, kBindings, kMouseMode, kMouse, kMousePitch, kTriggers, kCrash,
            kCheatHealth, kCheatAmmo, kCheatBoost, kCheatPlanes, kCheatMoney, kCheatTokens, kAudioOut, kLanguage, kLauncherAtStart, kReset, kQuit, kRows };
 
 template <size_t N>
@@ -241,8 +241,21 @@ AiState Ai() {
         status = GameReady() ? ai_movies::Check() : ai_movies::Status{};
     }
     was_running = running;
-    return {running, status.total > 0 && status.made == status.total, status.made, status.total};
+    return {running && ai_movies::Current() == ai_movies::Job::Movies, status.total > 0 && status.made == status.total,
+            status.made, status.total};
 }
+
+// the AI textures row: whether textures\ai\ is complete, looked at again after each run of a step
+AiState AiTex() {
+    static bool was_running = true, ready = false;
+    bool running = ai_movies::Running();
+    if (was_running && !running) ready = ai_movies::TexturesReady();
+    was_running = running;
+    return {running && ai_movies::Current() == ai_movies::Job::Textures, ready, 0, GameReady() ? 1 : 0};
+}
+
+// the step that failed last was this row's
+bool AiFailed(ai_movies::Job job) { return ai_movies::Failed() && ai_movies::Current() == job; }
 
 // a file dialog for the disc image or the extracted game's default.xbe; true when a game was picked
 bool BrowseGame() {
@@ -301,6 +314,7 @@ const char* Label(int row) {
         case kTextures: return "Texture pack";
         case kVideoUpscale: return "Video upscaling";
         case kAiMovies: return "AI cutscenes";
+        case kAiTextures: return "AI textures";
         case kVsync: return "VSync";
         case kFrameRate: return "Frame rate";
         case kFov: return "Field of view";
@@ -371,8 +385,18 @@ const char* Note(int row) {
             AiState st = Ai();
             if (st.running) note = ai_movies::Message() + "   Enter stops; what is made stays.";
             else if (st.complete) note = "The cutscenes upscaled by AI (Real-ESRGAN, 2x) on your PC instead of the originals.";
-            else if (ai_movies::Failed()) note = ai_movies::Message() + "   Enter carries on.";
+            else if (AiFailed(ai_movies::Job::Movies)) note = ai_movies::Message() + "   Enter carries on.";
             else note = "Optional. Enter: downloads Real-ESRGAN and FFmpeg (165 MB), then upscales the 60 cutscenes on your graphics card (about an hour).";
+            return note.c_str();
+        }
+        case kAiTextures: {
+            static std::string note;
+            AiState st = AiTex();
+            if (st.running) note = ai_movies::Message() + "   Enter stops; what is made stays.";
+            else if (st.complete) note = "The game's textures upscaled by AI (Real-ESRGAN, 2x) on your PC. Menus and the HUD stay as they are; your own texture pack wins.";
+            else if (AiFailed(ai_movies::Job::Textures)) note = ai_movies::Message() + "   Enter carries on.";
+            else if (ai_movies::Running()) note = "Waits until the AI cutscenes are made.";
+            else note = "Optional. Enter: downloads Real-ESRGAN (45 MB) once, then upscales the game's textures on your graphics card (a few minutes).";
             return note.c_str();
         }
         case kVsync: return "Wait for the monitor's refresh. Off can tear.";
@@ -451,10 +475,21 @@ std::string Value(int row) {
             }
             if (st.complete) return s.ai_movies ? "On" : "Off";
             if (st.total == 0) return "Needs the game";
-            if (ai_movies::Failed()) return "Stopped - carry on";
+            if (AiFailed(ai_movies::Job::Movies)) return "Stopped - carry on";
             if (st.made == 0) return "Make (about an hour)";
             std::snprintf(b, sizeof b, "Make the rest (%d of %d made)", st.made, st.total);
             return b;
+        }
+        case kAiTextures: {
+            AiState st = AiTex();
+            if (st.running) {
+                std::snprintf(b, sizeof b, "Making... %d%%", int(ai_movies::Progress() * 100));
+                return b;
+            }
+            if (st.complete) return s.ai_textures ? "On" : "Off";
+            if (st.total == 0) return "Needs the game";
+            if (AiFailed(ai_movies::Job::Textures)) return "Stopped - carry on";
+            return "Make (a few minutes)";
         }
         case kVsync: return s.vsync ? "On" : "Off";
         case kFrameRate: return kFps[IndexOf(kFps, frame_rate::Fps())].label;
@@ -511,6 +546,10 @@ void Change(int row, int d) {
             if (!Ai().complete) return;  // a toggle once the cutscenes are made
             s.ai_movies = !s.ai_movies;
             break;
+        case kAiTextures:
+            if (!AiTex().complete) return;  // a toggle once the textures are made
+            s.ai_textures = !s.ai_textures;
+            break;
         case kVsync: s.vsync = !s.vsync; break;
         case kFrameRate: frame_rate::g_fps = Step(kFps, frame_rate::Fps(), d); break;
         case kSway: frame_rate::g_sway = Step(kSways, std::min(frame_rate::g_sway, 100u), d); break;
@@ -547,7 +586,21 @@ void AiAction() {
     AiState st = Ai();
     if (st.running) ai_movies::Stop();
     else if (st.complete) Change(kAiMovies, 1);
-    else if (st.total) ai_movies::Start();
+    else if (st.total && !ai_movies::Running()) ai_movies::Start(ai_movies::Job::Movies);
+}
+
+// Enter or a click on AI textures: stop a run, else switch them on or off, else make them (and use them)
+void AiTexAction() {
+    AiState st = AiTex();
+    if (st.running) {
+        ai_movies::Stop();
+    } else if (st.complete) {
+        Change(kAiTextures, 1);
+    } else if (st.total && !ai_movies::Running()) {
+        app::Get().ai_textures = true;
+        app::Save();
+        ai_movies::Start(ai_movies::Job::Textures);
+    }
 }
 
 bool HasOption(int row) { return row != kStart && row != kGame && row != kQuit && row != kBindings && row != kReset; }
@@ -829,11 +882,11 @@ Result Draw(int& sel, float scale) {
         if (r == sel) DrawHighlight(dl, a, b, fs, scale);
         float ty = a.y + (row_h - fs) / 2;
         bool action = r == kStart || r == kGame || r == kQuit || r == kBindings || r == kUpdate || r == kReset ||
-                      r == kAiMovies;
+                      r == kAiMovies || r == kAiTextures;
         ImU32 col = r == kStart ? (GameReady() ? kGold : kGrey) : r == sel ? kWhite : kGrey;
         dl->AddText(ImVec2(p0.x + pad, ty), r == kStart && r == sel ? kWhite : col, Label(r));
         if (HasOption(r) || r == kGame || r == kBindings || (r == kReset && g_reset_armed)) {
-            std::string v = r == kBindings ? std::string(">") : r == sel && r != kGame && r != kReset && (r != kAiMovies || Ai().complete) ? "<  " + Value(r) + "  >" : Value(r);
+            std::string v = r == kBindings ? std::string(">") : r == sel && r != kGame && r != kReset && (r != kAiMovies || Ai().complete) && (r != kAiTextures || AiTex().complete) ? "<  " + Value(r) + "  >" : Value(r);
             float vw = ImGui::CalcTextSize(v.c_str()).x;
             ImU32 vc = r == kGame && g_game.probe != app::GameProbe::Match ? kAccent
                        : r == kUpdate && updater::GetState() == updater::State::Available ? kGold
@@ -858,6 +911,7 @@ Result Draw(int& sel, float scale) {
         else if (sel == kBindings) OpenBindings();
         else if (sel == kUpdate) UpdateAction();
         else if (sel == kAiMovies) AiAction();
+        else if (sel == kAiTextures) AiTexAction();
         else if (sel == kReset && !g_reset_armed) g_reset_armed = true;
         else if (sel == kReset) ResetSettings();
         else Change(sel, 1);

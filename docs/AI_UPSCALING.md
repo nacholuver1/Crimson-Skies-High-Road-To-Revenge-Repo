@@ -1,4 +1,4 @@
-# AI upscaling: cutscenes (done) and textures (planned)
+# AI upscaling: cutscenes and textures
 
 Opt-in player feature: the player's own PC upscales the game's Bink cutscenes with an AI model, and the game
 draws the results. Nothing upscaled is ever shipped or committed (it is derived game data); the release ships
@@ -48,8 +48,30 @@ child process; RecompLauncher's `prepare` step runs `--prepare`, and its unticke
 - Bugs met: a seek loop (a seek restarts at the keyframe before the target; those frames moved `next` back and
   asked for another seek) and an off-by-one that seeked backwards after every handed-over frame.
 
-## Textures (not started)
-Plan: with an option on, each new texture is dumped (SDK texture dumper), upscaled in the background with
-`realesrgan-x4plus`, and loaded as a replacement next time (player packs in `textures\replacement\` win). Skip
-fonts and HUD text (a sharper filter distorted letters in 1.2.0), bump maps, render-target copies and tiny
-textures. Offline extraction from the level `.bin` bundles would need that format worked out first.
+## Textures (2026-11-27)
+
+### The level bundles
+The root `*.bin` files (missions, multiplayer maps, menus) hold named entries. A texture entry is
+`<u32 2><u32 name bytes><name .tga/.dds NUL><u32 total><u16 w><u16 h><u16 mips><u8><u32 game format>
+<u32 level 0 bytes>` followed by the levels, the bytes exactly as they sit in Xbox memory (swizzled where the console
+swizzles). Game formats: 1 DXT1, 5 DXT5, 14 R5G6B5, 15 X8R8G8B8, 16 A8R8G8B8 (swizzled), 19 P8 (palette in a
+separate `_pal` entry, not used). Each bundle carries its own copies of shared textures: 12,301 entries, 1,043
+unique keys. The SDK's pack key (`Hash(level 0, Hash({xbox format, w, h}))`) computed from these bytes matched 775
+of the 866 textures dumped in a full playthrough; the rest are P8, six DXT3 terrain textures and textures from
+elsewhere.
+
+### Making them (`--ai-textures`, `src/common/ai_movies.cpp` `MakeTextures`)
+Reads every bundle off the disc image or folder, keys and dedupes the entries, leaves out by name `ui_*`, `hud_*`,
+`esrb*`, `water!*` (normal maps), `*mask*` and `*_lm` (light maps), by size 32 px and below and 1024x1024 and up,
+and by look flat colour and normal maps (bluish mean). The rest is decoded by the SDK (`texturedumper::DecodeBgra`),
+upscaled 64 at a time by `realesrgan-x4plus -s 4` (on an opaque copy), halved to 2x with WIC's high-quality cubic,
+given the original's alpha resized (0/255 alpha stays 0/255) and written to `textures\ai\<w>x<h>_<key>_<fmt>.png`.
+`done.txt` holds the recipe. 650 textures, 152 MB, 2 min 19 s on an RTX 4070 SUPER; 393 left as they are.
+Model choice: on samples `realesrgan-x4plus` kept sign lettering and brick, foliage and plane detail;
+`realesr-animevideov3` smeared them into a painted look.
+
+### Drawing them (SDK `gpu/texturedumper.cpp`)
+Setting `ai_textures` (off by default; the launcher's Make turns it on) lists `textures\ai\` after the player's
+`textures\replacement\`, so the player's pack wins where both name a texture. PNG replacements get box-filtered
+mips. A see-through look of the Sea Haven cave water was checked during testing: it is the same with no pack
+at all.

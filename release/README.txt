@@ -80,7 +80,9 @@ Settings (saved to settings.toml next to the program; the launcher writes it)
   Video upscaling             cutscenes and stills: bicubic upscaling and deinterlacing instead of a plain stretch
   AI cutscenes                optional: upscales the 60 cutscenes with AI on your PC, once (see "AI cutscenes"
                               below). When they are made, On (default) or Off.
-  Frame rate                  30 (the original) to 240. Set it to your monitor's refresh rate. The game's speed
+  AI textures                 optional: upscales the game's textures with AI on your PC, once (see "AI textures"
+                              below). Off until you make them; then On or Off.
+  Frame rate                 30 (the original) to 240. Set it to your monitor's refresh rate. The game's speed
                               stays right at any of them.
   Camera sway                 the camera's turbulence sway: lower it, or turn it off, if the motion makes you
                               feel sick (100% is the original)
@@ -142,17 +144,30 @@ AI cutscenes (sharper movies)
   tick "AI-upscaled cutscenes" when you set the game up (or under Set Up Again).
   Command line: CrimsonSkies.exe --ai-movies [--game <your game>] does the same without a window.
 
+AI textures (sharper planes, buildings and signs)
+  On the AI textures row, Enter makes a 2x copy of the game's textures with Real-ESRGAN on your own graphics card,
+  read straight from your game (no playing needed first):
+  1. It downloads Real-ESRGAN (45 MB) into the tools folder once, checked against its known SHA-256.
+  2. It upscales about 650 textures into textures\ai\ (about 150 MB): a few minutes on a recent graphics card;
+     it needs about 2 GB of free disk space while it runs, and a graphics driver with Vulkan.
+  Menus, the HUD and their lettering stay the game's own (AI upscaling bends letters), and so do textures that
+  hold data rather than pictures. When it is done the row says On; set it to Off to see the originals. Your own
+  texture pack in textures\replacement\ wins over the AI one where both have a texture. Delete textures\ai\ to
+  remove them. In RecompLauncher, tick "AI-upscaled textures" when you set the game up (or under Set Up Again).
+  Command line: CrimsonSkies.exe --ai-textures [--game <your game>].
+
 Command-line options
   --no-launcher   start the game directly this once
   --launcher      show the launcher even when it is turned off
   --no-update-check  no update check this time
   --ai-movies     make the AI cutscenes (see above), then exit
+  --ai-textures   make the AI textures (see above), then exit
 
 Everything stays in this folder
   assets\        your game, if you put it here instead of picking it in the launcher
   compiler\      the translator, and in compiler\work\ the game's translated code (safe to delete; rebuilt)
   CrimsonSkies.dll  the translated game code, built on first start
-  textures\      texture packs (replacement\) and saved game textures (dumps\), when you use them
+  textures\      texture packs (replacement\), saved game textures (dumps\) and the AI textures (ai\), when you use them
   movies\ai\     the AI cutscenes, when you make them; tools\ the upscaler and FFmpeg they were made with
   hdd\           the Xbox hard disk: saves (hdd\E\UDATA) and the game's cache (hdd\Z)
   settings.toml  settings
@@ -200,7 +215,7 @@ Credits and licenses
   follows crazyriddler's patches for this game in xbased; the menu text fix follows the diagnosis in xemu issue
   #2902 and its fix by abaire; the launcher's design is adapted from darkuni's MIT-licensed recomp menus. See the licenses
   folder. The Steam Deck steps follow StealthRook's and ROCraiderny's notes in issue #2.
-  AI cutscenes are made with Real-ESRGAN by Xintao Wang et al. (https://github.com/xinntao/Real-ESRGAN, BSD-3-Clause
+  AI cutscenes and textures are made with Real-ESRGAN by Xintao Wang et al. (https://github.com/xinntao/Real-ESRGAN, BSD-3-Clause
   models; its ncnn Vulkan program is MIT, built on Tencent's ncnn, BSD-3-Clause) and FFmpeg (https://ffmpeg.org,
   Gyan Doshi's Windows build), downloaded on your request and not part of this release.
   Crimson Skies is a trademark of Microsoft; this project is not affiliated with or endorsed by Microsoft.

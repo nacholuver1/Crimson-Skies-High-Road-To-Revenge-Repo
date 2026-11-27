@@ -71,6 +71,7 @@ texture filtering, texture packs, video upscaling, vsync, frame rate, FPS counte
 | `original_aspect` | 4:3 on any screen with bars at the sides; the game is told of a 4:3 TV, as on the console without widescreen (off by default) |
 | `upscale_videos` | cutscenes and stills: bicubic upscaling and deinterlacing (on by default) |
 | `ai_movies` | AI cutscenes: `movies\ai\<movie>.mp4` beside the exe, made on the player's PC by the launcher's **AI cutscenes** row (or `--ai-movies`), is drawn in place of each Bink movie with the Bink file's own timing and sound (on by default; does nothing until they are made). See [docs/AI_UPSCALING.md](docs/AI_UPSCALING.md). |
+| `ai_textures` | AI textures: `textures\ai\`, made on the player's PC by the launcher's **AI textures** row (or `--ai-textures`) from every texture in the game's level bundles, is drawn below the player's own pack (off by default; the row's Make turns it on). Menus, the HUD and data textures stay the game's. |
 | `render_percent` | of the output height; above 100 renders bigger and averages down |
 | `anisotropic_filtering` | 0 (as the game asks), 2, 4, 8, 16 |
 | `custom_textures`, `dump_textures`, `texture_dump_format` | texture packs, from the SDK's texture dumper: images in `textures\replacement\` whose names hold a texture's 16-hex-digit key replace it at any resolution (on by default; PNG or DDS, subfolders allowed, reloaded while running); `dump_textures` writes each texture the game uses once to `textures\dumps\` as `<w>x<h>_<key>_<format>.png` (format 0) or `.dds` (1) to edit or upscale. The player README has the steps. |
@@ -89,9 +90,9 @@ texture filtering, texture packs, video upscaling, vsync, frame rate, FPS counte
 | `check_updates` | the launcher asks GitHub for the latest release when it opens and offers a newer one in a popup (on by default); **Update now** downloads the win64 zip, checks its SHA-256 against the one GitHub lists, moves the new files over the old ones and restarts. Settings, saves and the game are not in the zip, so they stay. |
 
 Command line: `--no-launcher` skips the launcher once, `--launcher` shows it even when it is turned off,
-`--no-update-check` skips the update check once, `--ai-movies` makes the AI cutscenes without a window (progress
-lines on stdout) and exits, `--prepare` is RecompLauncher's setup step (the AI cutscenes when its tick adds
-`--ai-movies`, else nothing). The version is `project(VERSION)` in `CMakeLists.txt`;
+`--no-update-check` skips the update check once, `--ai-movies` and `--ai-textures` make the AI cutscenes or textures
+without a window (progress lines on stdout) and exit, `--prepare` is RecompLauncher's setup step (what its ticks add
+with `--ai-movies` / `--ai-textures`, else nothing). The version is `project(VERSION)` in `CMakeLists.txt`;
 `tools/make_release.ps1` packs that version.
 
 ## Building from source
@@ -141,7 +142,7 @@ sources. Tools in `tools/`: `extract_xiso.py` (disc images), `xbe_info.py` (exec
   follow.
 - [Real-ESRGAN](https://github.com/xinntao/Real-ESRGAN) by Xintao Wang et al. (BSD-3-Clause models; the ncnn
   Vulkan program is MIT, on Tencent's ncnn, BSD-3-Clause) and [FFmpeg](https://ffmpeg.org) (Gyan Doshi's Windows
-  build), which make the AI cutscenes on the player's PC; neither is shipped with the release.
+  build), which make the AI cutscenes and textures on the player's PC; neither is shipped with the release.
 - Built by Claude (Anthropic) with Claude Code, directed and play-tested by nacholuver1.
 
 Full notices: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
