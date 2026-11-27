@@ -255,6 +255,12 @@ general bug.)
 
 The 256x256 copy lives at the depth buffer's address (0x01A3E000); colour and depth are separate host resources here, but with alpha 1 the copy is fully replaced each frame, so no aliasing emulation is needed. The shimmer is a programmable pixel shader (bumpenv mode 6 on stage 1, no COLORSIGN). The fixed-function bump env op and signed bump filtering were added in the same release but are not exercised by it.
 
+## Bracket stuck in the top-left corner: fixed (issue #12, 2026-11-27)
+
+| Symptom | Cause | Fix | How it was found |
+|---|---|---|---|
+| A green (wingman) or red (enemy) bracket sits in the top-left corner of the HUD, e.g. after the wingman flies off screen beside the player | The camera's world-to-screen (`0x2B660`) writes exactly -1, -1 for a point behind the camera; the three unit-bracket functions (callers `0x121189`, `0x121490`, `0x1215BD`) never check for it and draw the bracket at the viewport's corner. A unit gets a bracket by its bounding sphere being in view, so a plane alongside and a little behind (centre behind the camera, sphere in the wide view) hit it often at 16:9 and fov 100-130 | `widescreen.cpp` `Widescreen_HudProject`: for those three callers, -1, -1 becomes -100000, -100000 (bracket drawn outside the frame), HUD Fit on or off | The player's screenshots and video, the user's own playthrough screenshots, then the generated code of the bracket functions. Codex: 2 rounds, "No issues". User-tested in the tutorial at fov 120 |
+
 ## Untouched retail xbe: "different release" warning and dirty-disc screen (2026-11-26, v1.16.1)
 
 | Symptom | Cause | Fix | How it was found |

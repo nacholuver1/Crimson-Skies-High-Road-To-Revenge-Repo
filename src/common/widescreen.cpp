@@ -45,16 +45,35 @@ static bool HudCaller(uint32_t ret) {
     return false;
 }
 
+// The unit brackets never check for the behind-the-camera result: they round -1, -1 and draw the bracket at the
+// viewport's top-left corner (issue #12). A unit counts as visible by its bounding sphere, so a wingman alongside and
+// a little behind (its centre behind the camera plane, its sphere still in the wide view) left a bracket stuck there.
+// For those callers a point behind the camera is moved far off screen, so the bracket is drawn outside the frame.
+static bool BracketCaller(uint32_t ret) { return ret == 0x121189 || ret == 0x121490 || ret == 0x1215BD; }
+
 // at "ret 0x0C" (0x2B7A9) of 0x2B660: ecx = the camera, [esp] = the caller, [esp+4] = out, [esp+0xC] = count
 void Widescreen_HudProject(X86Context& ctx, uint8_t* base) {
-    if (!app::Get().fit_hud) return;
-    float k = (4.0f / 3.0f) / app::PresentAspect();
-    if (!(k > 0.1f && k < 0.999f)) return;  // PresentAspect is 4:3 to 32:9
     uint32_t ret, out, count, vp;
     std::memcpy(&ret, base + ctx.esp, 4);
     if (!HudCaller(ret)) return;
     std::memcpy(&out, base + ctx.esp + 4, 4);
     std::memcpy(&count, base + ctx.esp + 12, 4);
+    if (!out || count > 64) return;
+    if (BracketCaller(ret)) {
+        for (uint32_t i = 0; i < count; i++) {
+            float x, y;
+            std::memcpy(&x, base + out + i * 8, 4);
+            std::memcpy(&y, base + out + i * 8 + 4, 4);
+            if (x == -1.0f && y == -1.0f) {
+                const float far_off = -100000.0f;
+                std::memcpy(base + out + i * 8, &far_off, 4);
+                std::memcpy(base + out + i * 8 + 4, &far_off, 4);
+            }
+        }
+    }
+    if (!app::Get().fit_hud) return;
+    float k = (4.0f / 3.0f) / app::PresentAspect();
+    if (!(k > 0.1f && k < 0.999f)) return;  // PresentAspect is 4:3 to 32:9
     std::memcpy(&vp, base + ctx.ecx + 0xE3C, 4);
     if (!out || !vp || count > 64) return;
     int32_t left;
