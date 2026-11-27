@@ -80,7 +80,8 @@ foreach ($d in @(@("zydis-src", "zydis.txt"), @("tomlplusplus-src", "tomlplusplu
 
 # guard: nothing from the game, no generated code, no player files
 $bad = Get-ChildItem $stage -Recurse -File | Where-Object {
-    $_.Extension -in '.xbe', '.iso', '.xiso', '.bik', '.xmv', '.zip', '.bin', '.xbx', '.dll' -and
+    # .mp4/.png: AI cutscenes and textures, made from the game on a player's PC, are never shipped
+    $_.Extension -in '.xbe', '.iso', '.xiso', '.bik', '.xmv', '.zip', '.bin', '.xbx', '.dll', '.mp4', '.png' -and
     $_.Name -notin 'msvcp140.dll', 'vcruntime140.dll', 'vcruntime140_1.dll', 'd3dcompiler_47.dll' -or
     $_.Name -eq 'settings.toml' -or $_.FullName -like '*\work\*' -or $_.FullName -like '*\generated\*' -or
     $_.Name -like 'x86_recomp*'
